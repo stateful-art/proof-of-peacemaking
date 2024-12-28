@@ -234,6 +234,19 @@ networks: {
 ```
 
 ### 3. Deployment Commands
+Before deployment:
+1. Copy and fill the environment variables:
+```bash
+cp .env.example .env
+
+# Required variables for deployment:
+# - INFURA_API_KEY: Your Infura API key
+# - PRIVATE_KEY: Your wallet's private key (with 0x prefix)
+# - ETHERSCAN_API_KEY: For contract verification
+# - IPFS_PROJECT_ID & IPFS_PROJECT_SECRET: For IPFS storage
+```
+
+Deployment process:
 ```bash
 # First, go to scripts directory
 cd scripts
@@ -250,6 +263,20 @@ npx hardhat deploy --network mainnet
 # Or from project root (using --config)
 npx hardhat deploy --network localhost --config scripts/hardhat.config.js
 ```
+
+The deployment script will:
+1. Validate all required environment variables
+2. Deploy all contracts (Diamond, facets, etc.)
+3. Automatically update .env with deployed contract addresses:
+   - DIAMOND_ADDRESS
+   - DIAMOND_CUT_FACET
+   - DIAMOND_LOUPE_FACET
+   - EXPRESSION_FACET
+   - ACKNOWLEDGEMENT_FACET
+   - POPNFT_FACET
+   - PERMISSIONS_FACET
+
+If any required variables are missing or invalid, the deployment will fail with a helpful error message.
 
 ### 4. Contract Verification
 ```bash
