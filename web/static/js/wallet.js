@@ -33,52 +33,125 @@ async function connectWallet() {
         await waitForEthers();
 
         if (typeof window.ethereum === 'undefined') {
-            alert('Please install MetaMask to use this application');
+            console.error('MetaMask not installed');
             return;
         }
 
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        console.log('Connected accounts:', accounts);
+        // Request account access
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        const address = accounts[0];
         
-        provider = new ethers.BrowserProvider(window.ethereum);
-        signer = await provider.getSigner();
-        
-        const address = await signer.getAddress();
-        console.log('Connected wallet address:', address);
-        currentAddress = address;
-        isConnected = true;
+        try {
+            // Get nonce for signing
+            const nonceResponse = await fetch('/auth/nonce?address=' + address, {
+                method: 'GET',
+                credentials: 'include',
+            });
+            
+            if (!nonceResponse.ok) {
+                const errorData = await nonceResponse.json();
+                throw new Error(errorData.error || 'Failed to get nonce');
+            }
+            const nonceData = await nonceResponse.json();
+            
+            // Create message for signing
+            const message = `Sign this message to verify your wallet. Nonce: ${nonceData.nonce}`;
+            console.log('Signing message:', message);
+            
+            // Request signature
+            const signature = await ethereum.request({
+                method: 'personal_sign',
+                params: [message, address],
+            });
+            console.log('Got signature:', signature);
+            
+            // Verify signature
+            const verifyResponse = await fetch('/auth/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ address, signature }),
+                credentials: 'include',
+            });
+            
+            if (!verifyResponse.ok) {
+                const errorData = await verifyResponse.json();
+                throw new Error(errorData.error || 'Failed to verify signature');
+            }
 
-        const network = await provider.getNetwork();
-        console.log('Connected network:', {
-            name: network.name,
-            chainId: network.chainId,
-            ensAddress: network.ensAddress
+            const verifyData = await verifyResponse.json();
+            if (!verifyData.valid) {
+                throw new Error('Invalid signature');
+            }
+
+            // Update UI
+            isConnected = true;
+            currentAddress = address;
+            updateWalletButton(address);
+
+            // Setup provider and signer
+            provider = new ethers.BrowserProvider(window.ethereum);
+            signer = await provider.getSigner();
+
+            // Update dashboard if on dashboard page
+            const walletAddress = document.getElementById('walletAddress');
+            if (walletAddress) {
+                walletAddress.textContent = `Connected: ${address}`;
+                const networkInfo = document.getElementById('networkInfo');
+                if (networkInfo) {
+                    const network = await provider.getNetwork();
+                    networkInfo.textContent = `Network: ${network.name}`;
+                }
+            }
+
+            return address;
+        } catch (error) {
+            console.error('Authentication error:', error);
+            isConnected = false;
+            throw error;
+        }
+    } catch (error) {
+        console.error('Wallet connection error:', error);
+        isConnected = false;
+        throw error;
+    }
+}
+
+async function registerUser(address, email) {
+    try {
+        const response = await fetch('/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ address, email }),
+            credentials: 'include',
         });
         
-        const balance = await provider.getBalance(address);
-        console.log('Wallet balance:', ethers.formatEther(balance), 'ETH');
-
-        updateWalletButton(address);
-        
-        // Update dashboard if on dashboard page
-        const walletAddress = document.getElementById('walletAddress');
-        if (walletAddress) {
-            walletAddress.textContent = `Connected: ${address}`;
-            const networkInfo = document.getElementById('networkInfo');
-            if (networkInfo) {
-                networkInfo.textContent = `Network: ${network.name}`;
-            }
+        if (!response.ok) {
+            throw new Error('Failed to register user');
         }
-
-        return address;
+        
+        const data = await response.json();
+        return data.user;
     } catch (error) {
-        console.error('Error connecting wallet:', error);
-        alert('Failed to connect wallet: ' + error.message);
+        console.error('Error registering user:', error);
+        throw error;
     }
 }
 
 // Add disconnect function
 async function disconnectWallet() {
+    try {
+        await fetch('/auth/logout', {
+            method: 'POST',
+            credentials: 'include',
+        });
+    } catch (error) {
+        console.error('Error logging out:', error);
+    }
+
     isConnected = false;
     currentAddress = null;
     provider = null;
@@ -164,25 +237,30 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isConnected) {
                 toggleDropdown(e);
             } else {
-                await connectWallet();
+                try {
+                    await connectWallet();
+                } catch (error) {
+                    console.error('Failed to connect wallet:', error);
+                }
             }
         });
     }
 
-    // Check if already connected
-    checkConnection();
-
+    // Listen for account changes
     if (window.ethereum) {
         window.ethereum.on('accountsChanged', function (accounts) {
             if (accounts.length === 0) {
                 disconnectWallet();
-            } else {
+            } else if (isConnected) {
+                // Only reconnect if we were previously connected
                 connectWallet();
             }
         });
 
         window.ethereum.on('chainChanged', function (chainId) {
-            window.location.reload();
+            if (isConnected) {
+                window.location.reload();
+            }
         });
     }
 }); 

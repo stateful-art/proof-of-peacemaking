@@ -1,13 +1,62 @@
 package routes
 
 import (
+	"log"
 	"proofofpeacemaking/internal/handlers"
 	"proofofpeacemaking/internal/middleware"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
+	// Add CORS middleware
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,PUT,DELETE",
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
+
+	// Add error handling middleware
+	app.Use(func(c *fiber.Ctx) error {
+		err := c.Next()
+		if err != nil {
+			log.Printf("[ERROR] Path: %s, Error: %v", c.Path(), err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+		return nil
+	})
+
+	// Add request logging middleware
+	app.Use(func(c *fiber.Ctx) error {
+		start := time.Now()
+		path := c.Path()
+		method := c.Method()
+		log.Printf("[REQUEST] %s %s", method, path)
+		if method == "GET" {
+			log.Printf("[QUERY] %s", c.Context().QueryArgs().String())
+		} else if method == "POST" {
+			log.Printf("[BODY] %s", string(c.Body()))
+		}
+
+		err := c.Next()
+
+		duration := time.Since(start)
+		status := c.Response().StatusCode()
+		log.Printf("[RESPONSE] %s %s - Status: %d - Duration: %v", method, path, status, duration)
+		if err != nil {
+			log.Printf("[ERROR] %s %s - Error: %v", method, path, err)
+		}
+
+		return err
+	})
+
+	// Create middleware using auth service from handlers
+	authMiddleware := middleware.NewAuthMiddleware(h.Auth.GetAuthService())
+
 	// Home page
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("index", fiber.Map{
@@ -16,11 +65,13 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	})
 
 	// Public routes
-	app.Post("/auth/nonce", h.Auth.GenerateNonce)
+	app.Get("/auth/nonce", h.Auth.GenerateNonce)
 	app.Post("/auth/verify", h.Auth.VerifySignature)
+	app.Post("/auth/register", h.Auth.Register)
+	app.Post("/auth/logout", h.Auth.Logout)
 
 	// Protected routes
-	api := app.Group("/api", middleware.AuthMiddleware())
+	api := app.Group("/api", authMiddleware.Authenticate())
 
 	// Notification routes
 	notifications := api.Group("/notifications")
