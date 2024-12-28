@@ -202,38 +202,107 @@ The proxy operator pattern enables:
 
 ## Deployment
 
-1. **Contract Deployment Order**
-   ```bash
-   # 1. Deploy Expression contract
-   npx hardhat run scripts/deploy-expression.js --network <network>
+### 1. Configuration
+```bash
+# Copy and fill environment variables
+cp .env.example .env
 
-   # 2. Deploy Acknowledgement contract
-   npx hardhat run scripts/deploy-acknowledgement.js --network <network>
+# Required variables:
+PRIVATE_KEY=your_private_key
+INFURA_API_KEY=your_infura_key
+ETHERSCAN_API_KEY=your_etherscan_key
+REPORT_GAS=true
+```
 
-   # 3. Deploy POPNFT contract
-   npx hardhat run scripts/deploy-popnft.js --network <network>
+### 2. Network Configuration
+Available networks in hardhat.config.js:
+```javascript
+networks: {
+    hardhat: {},
+    localhost: {
+        url: "http://127.0.0.1:8545"
+    },
+    sepolia: {
+        url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+        accounts: [process.env.PRIVATE_KEY]
+    },
+    mainnet: {
+        url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+        accounts: [process.env.PRIVATE_KEY]
+    }
+}
+```
 
-   # 4. Deploy ProxyOperator contract
-   npx hardhat run scripts/deploy-proxy.js --network <network>
+### 3. Deployment Commands
+```bash
+# First, go to scripts directory
+cd scripts
 
-   # 5. Set up contract relationships
-   npx hardhat run scripts/setup-contracts.js --network <network>
-   ```
+# Local deployment
+npx hardhat deploy --network localhost
 
-2. **Contract Verification**
-   ```bash
-   # Verify on Etherscan
-   npx hardhat verify --network <network> <contract-address> <constructor-args>
-   ```
+# Testnet deployment (Sepolia)
+npx hardhat deploy --network sepolia
 
-3. **Frontend Deployment**
-   ```bash
-   # Build frontend
-   go build -o server cmd/server/main.go
+# Mainnet deployment
+npx hardhat deploy --network mainnet
 
-   # Run with environment variables
-   PORT=3003 ./server
-   ```
+# Or from project root (using --config)
+npx hardhat deploy --network localhost --config scripts/hardhat.config.js
+```
+
+### 4. Contract Verification
+```bash
+# From scripts directory
+npx hardhat verify --network sepolia <DIAMOND_ADDRESS> <OWNER_ADDRESS> <DIAMOND_CUT_FACET_ADDRESS>
+
+# Verify facets (run for each facet)
+npx hardhat verify --network sepolia <FACET_ADDRESS>
+
+# Or from project root
+npx hardhat verify --network sepolia --config scripts/hardhat.config.js <FACET_ADDRESS>
+```
+
+### 5. Testing
+```bash
+# From scripts directory
+# Run all tests
+# npx hardhat test
+
+# Run specific test file
+npx hardhat test test/Diamond.test.js
+
+# Run tests with gas reporting
+REPORT_GAS=true npx hardhat test
+
+# Run coverage
+npx hardhat coverage
+
+# Or from project root
+npx hardhat test scripts/test/Diamond.test.js --config scripts/hardhat.config.js
+```
+
+### 6. Deployment Process
+The deployment script (`scripts/deploy.js`) performs these steps:
+1. Deploys DiamondCutFacet
+2. Deploys main Diamond contract
+3. Deploys DiamondLoupeFacet
+4. Deploys all functional facets:
+   - ExpressionFacet
+   - AcknowledgementFacet
+   - POPNFTFacet
+   - PermissionsFacet
+5. Adds all facets to Diamond via diamondCut
+6. Verifies deployment success
+
+### 7. Post-Deployment Verification
+```bash
+# Verify Diamond setup
+npx hardhat run scripts/verify-diamond.js --network sepolia
+
+# Test facet functions
+npx hardhat run scripts/test-facets.js --network sepolia
+```
 
 ## Security Considerations
 
@@ -367,4 +436,24 @@ MIT License - see LICENSE file for details
     "acknowledgement": "ipfs://Qm..."
   }
 }
+```
+
+### Project Structure
+```
+proof-of-peacemaking/
+├── contracts/           # Smart contracts
+│   ├── Diamond.sol
+│   ├── facets/
+│   ├── libraries/
+│   └── interfaces/
+├── scripts/            # Blockchain deployment & testing
+│   ├── deploy.js
+│   ├── verify-diamond.js
+│   ├── hardhat.config.js
+│   ├── libraries/
+│   │   └── diamond.js
+│   └── test/
+│       └── Diamond.test.js
+└── docs/              # Documentation
+    └── README.md
 ```
