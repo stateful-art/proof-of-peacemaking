@@ -1,8 +1,9 @@
 package handlers
 
 import (
+	"proofofpeacemaking/internal/core/ports"
+
 	"github.com/gofiber/fiber/v2"
-	"github.com/stateful-art/proof-of-peacemaking/internal/core/ports"
 )
 
 type AuthHandler struct {
