@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Proof of Peacemaking</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="logo">Proof of Peacemaking</a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/dashboard">Dashboard</a>
+                <button id="connectWallet" class="btn-connect">Connect Wallet</button>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        {{embed}}
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Proof of Peacemaking. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
+    <script src="/static/js/wallet.js"></script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html> 

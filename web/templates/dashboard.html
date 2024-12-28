@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Proof of Peacemaking</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script type="module" src="/static/js/ethers-init.js"></script>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="logo">Proof of Peacemaking</a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/dashboard">Dashboard</a>
+                <button id="connectWallet" class="btn-connect">Connect Wallet</button>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="dashboard-container">
+            <h1>Your Dashboard</h1>
+            
+            <div class="wallet-info">
+                <h2>Wallet Status</h2>
+                <p id="walletAddress">Not connected</p>
+                <p id="networkInfo">Please connect your wallet</p>
+            </div>
+
+            <div class="expressions-section">
+                <h2>Your Expressions of Peace</h2>
+                <div id="expressionsList" class="expressions-grid">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <button class="btn-primary" id="newExpression">Create New Expression</button>
+            </div>
+
+            <div class="acknowledgments-section">
+                <h2>Acknowledgments</h2>
+                <div id="acknowledgmentsList" class="acknowledgments-grid">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Proof of Peacemaking. All rights reserved.</p>
+    </footer>
+
+    <script src="/static/js/wallet.js"></script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html> 
