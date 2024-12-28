@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"proofofpeacemaking/internal/core/ports"
 
 	"github.com/gofiber/fiber/v2"
@@ -21,9 +22,15 @@ func (m *AuthMiddleware) Authenticate() fiber.Handler {
 		// Get token from cookie
 		token := c.Cookies("session")
 		if token == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Not authenticated",
-			})
+			log.Printf("\n\n\n\n\n\n[AUTH] No token found in cookie\n\n\n\n\n\n")
+			// For API routes, return JSON error
+			if c.Path() == "/api" {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"error": "Not authenticated",
+				})
+			}
+			// For page routes, redirect to home
+			return c.Redirect("/")
 		}
 
 		// Verify token
@@ -39,13 +46,20 @@ func (m *AuthMiddleware) Authenticate() fiber.Handler {
 				HTTPOnly: true,
 				SameSite: "Strict",
 			})
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Invalid or expired token",
-			})
+			// For API routes, return JSON error
+			if c.Path() == "/api" {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"error": "Invalid or expired token",
+				})
+			}
+			log.Printf("\n\n\n\n\n\n[AUTH] Redirecting to home\n\n\n\n\n\n")
+			// For page routes, redirect to home
+			return c.Redirect("/")
 		}
 
 		// Set user address in context
 		c.Locals("userAddress", userAddress)
+		log.Printf("\n\n\n\n\n\n[AUTH] User address set in context: %s\n\n\n\n\n\n", userAddress)
 		return c.Next()
 	}
 }

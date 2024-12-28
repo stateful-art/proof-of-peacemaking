@@ -42,7 +42,7 @@ func initServices(db *mongo.Database) (
 	authService := services.NewAuthService(userService, sessionRepo)
 	notificationService := services.NewNotificationService(notificationRepo, userRepo)
 	proofNFTService := services.NewProofNFTService(userRepo)
-	feedService := services.NewFeedService(expressionService, userService)
+	feedService := services.NewFeedService(expressionService, userService, acknowledgementService)
 
 	return notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService
 }
@@ -87,9 +87,8 @@ func main() {
 
 	// Setup template engine
 	engine := html.New(filepath.Join(projectRoot, "web/templates"), ".html")
-	engine.Reload(true)     // Enable this for development
-	engine.Layout("layout") // Set the default layout template
-	engine.Debug(true)      // Enable debug mode for development
+	engine.Reload(true) // Enable this for development
+	engine.Debug(true)  // Enable debug mode for development
 
 	// Add template functions
 	engine.AddFunc("formatDate", func(date time.Time) string {
@@ -100,6 +99,7 @@ func main() {
 	app := fiber.New(fiber.Config{
 		Views: engine,
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			log.Printf("Error handling request: %v", err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": err.Error(),
 			})

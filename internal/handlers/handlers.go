@@ -28,6 +28,6 @@ func NewHandlers(
 		Acknowledgement: NewAcknowledgementHandler(acknowledgementService, userService),
 		ProofNFT:        NewProofNFTHandler(proofNFTService),
 		Feed:            NewFeedHandler(feedService),
-		Dashboard:       NewDashboardHandler(expressionService, acknowledgementService, userService),
+		Dashboard:       NewDashboardHandler(expressionService, acknowledgementService, userService, proofNFTService),
 	}
 }

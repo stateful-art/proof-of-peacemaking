@@ -72,7 +72,6 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	app.Post("/auth/logout", h.Auth.Logout)
 
 	// Protected routes
-	api := app.Group("/api", authMiddleware.Authenticate())
 
 	// Feed page (protected)
 	app.Get("/feed", authMiddleware.Authenticate(), h.Feed.GetFeed)
@@ -80,6 +79,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	// Dashboard page (protected)
 	app.Get("/dashboard", authMiddleware.Authenticate(), h.Dashboard.GetDashboard)
 
+	api := app.Group("/api", authMiddleware.Authenticate())
 	// Notification routes
 	notifications := api.Group("/notifications")
 	notifications.Get("/", h.Notification.GetUserNotifications)
