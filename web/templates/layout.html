@@ -15,8 +15,10 @@
             <a href="/" class="logo">Proof of Peacemaking</a>
         </div>
         <div class="navbar-menu">
-            <a href="/feed" class="nav-item">Feed</a>
-            <a href="/dashboard" class="nav-item">Dashboard</a>
+            <div id="navAuthButtons" style="display: none;" class="nav-auth-items">
+                <a href="/feed" class="nav-item">Feed</a>
+                <a href="/dashboard" class="nav-item">Dashboard</a>
+            </div>
             <button id="connectWallet" class="btn-connect">Connect Wallet</button>
         </div>
     </nav>
@@ -51,6 +53,35 @@
 
     <script src="/static/js/wallet.js"></script>
     <script src="/static/js/main.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const navAuthButtons = document.getElementById('navAuthButtons');
+
+        // Check if wallet is connected
+        async function checkWalletConnection() {
+            const response = await fetch('/auth/session');
+            const data = await response.json();
+            
+            if (data.authenticated) {
+                navAuthButtons.style.display = 'flex';
+            } else {
+                navAuthButtons.style.display = 'none';
+            }
+        }
+
+        // Initial check
+        checkWalletConnection();
+
+        // Listen for wallet connection events
+        window.addEventListener('walletConnected', () => {
+            checkWalletConnection();
+        });
+
+        window.addEventListener('walletDisconnected', () => {
+            checkWalletConnection();
+        });
+    });
+    </script>
 </body>
 </html>
 {{end}} 

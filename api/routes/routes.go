@@ -61,7 +61,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("index", fiber.Map{
 			"Title": "Proof of Peacemaking",
-		})
+		}, "")
 	})
 
 	// Public auth routes

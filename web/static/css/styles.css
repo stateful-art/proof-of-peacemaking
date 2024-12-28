@@ -371,4 +371,28 @@ body {
     line-height: 1.6;
     color: #333;
     background-color: #f8f9fa;
+}
+
+.nav-auth-items {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-right: 1.5rem;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    justify-content: center;
+}
+
+#authenticatedButtons {
+    display: flex;
+    gap: 1rem;
+}
+
+#connectWalletHero {
+    padding: 12px 24px;
+    font-size: 1.1em;
 } 

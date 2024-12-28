@@ -31,11 +31,14 @@ async function checkSession() {
             currentAddress = data.address;
             updateWalletButton(data.address);
             
-            // Setup provider and signer only if we have window.ethereum
-            if (window.ethereum) {
-                provider = new ethers.BrowserProvider(window.ethereum);
-                signer = await provider.getSigner();
-            }
+            // Update UI elements
+            const navAuthButtons = document.getElementById('navAuthButtons');
+            const connectWalletHero = document.getElementById('connectWalletHero');
+            const authenticatedButtons = document.getElementById('authenticatedButtons');
+            
+            if (navAuthButtons) navAuthButtons.style.display = 'flex';
+            if (connectWalletHero) connectWalletHero.style.display = 'none';
+            if (authenticatedButtons) authenticatedButtons.style.display = 'block';
             
             return true;
         }
@@ -64,113 +67,102 @@ async function checkConnection() {
 
 // Update the connectWallet function
 async function connectWallet() {
-    try {
-        // Check session first
-        const hasSession = await checkSession();
-        if (hasSession) {
-            return currentAddress;
-        }
-
-        await waitForEthers();
-
-        if (typeof window.ethereum === 'undefined') {
-            alert('Please install MetaMask to connect your wallet');
-            return;
-        }
-
-        // Request account access
-        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-        const address = accounts[0];
-        
+    if (typeof window.ethereum !== 'undefined') {
         try {
-            // Get nonce for signing
-            const nonceResponse = await fetch('/auth/nonce?address=' + address, {
-                method: 'GET',
-                credentials: 'include',
-            });
-            
-            if (!nonceResponse.ok) {
-                const errorData = await nonceResponse.json();
-                throw new Error(errorData.error || 'Failed to get nonce');
-            }
+            // Request account access
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const address = accounts[0];
+
+            // Get nonce from server
+            const nonceResponse = await fetch(`/auth/nonce?address=${address}`);
             const nonceData = await nonceResponse.json();
 
-            // Create message for signing
+            // Request signature with the exact same message format as backend
             const message = `Sign this message to verify your wallet. Nonce: ${nonceData.nonce}`;
-            console.log('Signing message:', message);
-            
-            // Request signature
-            const signature = await ethereum.request({
+            const signature = await window.ethereum.request({
                 method: 'personal_sign',
-                params: [message, address],
+                params: [
+                    message,
+                    address
+                ]
             });
-            console.log('Got signature:', signature);
-            
-            // Verify signature
+
+            // Verify signature with server
             const verifyResponse = await fetch('/auth/verify', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ address, signature }),
-                credentials: 'include',
+                body: JSON.stringify({
+                    address: address,
+                    signature: signature
+                }),
+                credentials: 'include'  // Important: include credentials
             });
-            
-            if (!verifyResponse.ok) {
+
+            if (verifyResponse.ok) {
+                isConnected = true;
+                currentAddress = address;
+                // Update UI
+                updateWalletButton(address);
+                // Dispatch wallet connected event
+                window.dispatchEvent(new Event('walletConnected'));
+                // Ensure the page reloads after everything is set
+                await checkSession();  // Double-check session is set
+                window.location.reload();
+            } else {
                 const errorData = await verifyResponse.json();
-                throw new Error(errorData.error || 'Failed to verify signature');
+                console.error('Failed to verify signature:', errorData.error);
+                isConnected = false;
+                currentAddress = null;
             }
-
-            const verifyData = await verifyResponse.json();
-            if (!verifyData.valid) {
-                throw new Error('Invalid signature');
-            }
-
-            // Update UI
-            isConnected = true;
-            currentAddress = address;
-            updateWalletButton(address);
-
-            // Setup provider and signer
-            provider = new ethers.BrowserProvider(window.ethereum);
-            signer = await provider.getSigner();
-
-            return address;
         } catch (error) {
-            console.error('Authentication error:', error);
+            console.error('Error connecting wallet:', error);
             isConnected = false;
-            throw error;
+            currentAddress = null;
         }
-    } catch (error) {
-        console.error('Wallet connection error:', error);
-        isConnected = false;
-        throw error;
+    } else {
+        alert('Please install MetaMask to use this feature');
     }
 }
 
 // Add disconnect function
 async function disconnectWallet() {
     try {
+        isConnected = false;
+        currentAddress = null;
+        
+        // Clear session cookie
         await fetch('/auth/logout', {
             method: 'POST',
-            credentials: 'include',
+            credentials: 'include'
         });
-    } catch (error) {
-        console.error('Error logging out:', error);
-    }
 
-    isConnected = false;
-    currentAddress = null;
-    provider = null;
-    signer = null;
-    
-    const walletButton = document.getElementById('connectWallet');
-    walletButton.innerHTML = 'Connect Wallet';
-    walletButton.className = 'btn-connect';
-    
-    const dropdown = document.querySelector('.dropdown-content');
-    if (dropdown) {
-        dropdown.classList.remove('show');
+        // Update UI
+        const walletButton = document.getElementById('connectWallet');
+        if (walletButton) {
+            walletButton.innerHTML = 'Connect Wallet';
+            walletButton.className = 'btn-connect';
+        }
+
+        // Update other UI elements
+        const navAuthButtons = document.getElementById('navAuthButtons');
+        const connectWalletHero = document.getElementById('connectWalletHero');
+        const authenticatedButtons = document.getElementById('authenticatedButtons');
+        
+        if (navAuthButtons) navAuthButtons.style.display = 'none';
+        if (connectWalletHero) connectWalletHero.style.display = 'block';
+        if (authenticatedButtons) authenticatedButtons.style.display = 'none';
+
+        // Dispatch wallet disconnected event
+        window.dispatchEvent(new Event('walletDisconnected'));
+        
+        // Reload the page
+        window.location.reload();
+    } catch (error) {
+        console.error('Error disconnecting wallet:', error);
+        // Even if there's an error, try to reload to get to a clean state
+        window.location.reload();
     }
 }
 
@@ -229,7 +221,7 @@ window.onclick = function(event) {
 // Update the event listeners
 document.addEventListener('DOMContentLoaded', async () => {
     // Check session status on page load - only once
-    await checkConnection();
+    await checkSession();
 
     const connectButton = document.getElementById('connectWallet');
     if (connectButton) {
@@ -265,6 +257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Handle chain change by re-authenticating
             isConnected = false;
             currentAddress = null;
+            await disconnectWallet();
             await connectWallet();
         });
     }
