@@ -1,7 +1,12 @@
 const { getSelectors, FacetCutAction } = require('./libraries/diamond.js');
 const { ethers } = require("hardhat");
+const validateEnv = require('./utils/validateEnv');
+const updateEnv = require('./utils/updateEnv');
 
 async function deployDiamond() {
+    // Validate environment variables
+    validateEnv();
+
     const accounts = await ethers.getSigners();
     const contractOwner = accounts[0];
 
@@ -56,6 +61,17 @@ async function deployDiamond() {
         throw Error(`Diamond upgrade failed: ${tx.hash}`);
     }
     console.log('Diamond cut complete');
+
+    // Update .env with deployed addresses
+    updateEnv({
+        diamond: diamond.address,
+        diamondCut: diamondCutFacet.address,
+        diamondLoupe: diamondLoupeFacet.address,
+        expression: expressionFacet.address,
+        acknowledgement: acknowledgementFacet.address,
+        popnft: popnftFacet.address,
+        permissions: permissionsFacet.address
+    });
 
     return diamond.address;
 }

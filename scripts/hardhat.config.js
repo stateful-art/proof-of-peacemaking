@@ -1,6 +1,12 @@
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-etherscan");
 require('dotenv').config();
+const validateEnv = require('./utils/validateEnv');
+
+// Validate environment variables
+if (process.env.NODE_ENV !== 'test') {
+    validateEnv();
+}
 
 task("deploy", "Deploys the Diamond and all facets")
   .setAction(async () => {
