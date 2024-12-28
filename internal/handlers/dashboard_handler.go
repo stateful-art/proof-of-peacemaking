@@ -59,19 +59,41 @@ func (h *DashboardHandler) GetDashboard(c *fiber.Ctx) error {
 		})
 	}
 
+	// Get user's acknowledgements
+	acknowledgements, err := h.acknowledgementService.ListByUser(c.Context(), userAddress)
+	if err != nil {
+		log.Printf("[DASHBOARD] Error fetching acknowledgements: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch acknowledgements",
+		})
+	}
+
 	// Get user's stats
 	stats := fiber.Map{
 		"TotalExpressions":      len(expressions),
-		"TotalAcknowledgements": 0, // TODO: Implement acknowledgement count
+		"TotalAcknowledgements": len(acknowledgements),
 		"TotalProofs":           len(proofs),
+	}
+
+	// Sort expressions by timestamp to get most recent
+	// TODO: Add proper sorting when timestamp field is added
+	recentExpressions := expressions
+	if len(recentExpressions) > 5 {
+		recentExpressions = recentExpressions[:5]
+	}
+
+	// Sort proofs by timestamp to get most recent
+	recentProofs := proofs
+	if len(recentProofs) > 5 {
+		recentProofs = recentProofs[:5]
 	}
 
 	data := fiber.Map{
 		"Title":             "Dashboard - Proof of Peacemaking",
 		"User":              fiber.Map{"Address": userAddress},
 		"Stats":             stats,
-		"RecentExpressions": expressions,
-		"Proofs":            proofs,
+		"RecentExpressions": recentExpressions,
+		"Proofs":            recentProofs,
 	}
 	log.Printf("[DASHBOARD] Data being passed to template: %+v", data)
 

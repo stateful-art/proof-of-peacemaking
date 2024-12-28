@@ -38,29 +38,31 @@
         </div>
     </main>
 
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-section">
-                <h3>About</h3>
-                <p>Proof of Peacemaking is a platform for fostering positive interactions and acknowledging peaceful resolutions.</p>
+    <div id="footer" style="display: block;">
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About</h3>
+                    <p>Proof of Peacemaking is a platform for fostering positive interactions and acknowledging peaceful resolutions.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Links</h3>
+                    <a href="/about">About</a>
+                    <a href="/terms">Terms</a>
+                    <a href="/privacy">Privacy</a>
+                </div>
+                <div class="footer-section">
+                    <h3>Connect</h3>
+                    <a href="https://twitter.com" target="_blank">Twitter</a>
+                    <a href="https://discord.com" target="_blank">Discord</a>
+                    <a href="https://github.com" target="_blank">GitHub</a>
+                </div>
             </div>
-            <div class="footer-section">
-                <h3>Links</h3>
-                <a href="/about">About</a>
-                <a href="/terms">Terms</a>
-                <a href="/privacy">Privacy</a>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Proof of Peacemaking. All rights reserved.</p>
             </div>
-            <div class="footer-section">
-                <h3>Connect</h3>
-                <a href="https://twitter.com" target="_blank">Twitter</a>
-                <a href="https://discord.com" target="_blank">Discord</a>
-                <a href="https://github.com" target="_blank">GitHub</a>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2024 Proof of Peacemaking. All rights reserved.</p>
-        </div>
-    </footer>
+        </footer>
+    </div>
 
     <script src="/static/js/wallet.js"></script>
     <script src="/static/js/main.js"></script>
@@ -69,6 +71,7 @@
         const connectWalletHero = document.getElementById('connectWalletHero');
         const authenticatedButtons = document.getElementById('authenticatedButtons');
         const navAuthButtons = document.getElementById('navAuthButtons');
+        const footer = document.getElementById('footer');
 
         // Check if wallet is connected
         async function checkWalletConnection() {
@@ -80,10 +83,12 @@
                     connectWalletHero.style.display = 'none';
                     authenticatedButtons.style.display = 'block';
                     if (navAuthButtons) navAuthButtons.style.display = 'flex';
+                    if (footer) footer.style.display = 'none';
                 } else {
                     connectWalletHero.style.display = 'block';
                     authenticatedButtons.style.display = 'none';
                     if (navAuthButtons) navAuthButtons.style.display = 'none';
+                    if (footer) footer.style.display = 'block';
                 }
             } catch (error) {
                 console.error('Error checking wallet connection:', error);

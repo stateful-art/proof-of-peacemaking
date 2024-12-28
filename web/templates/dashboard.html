@@ -166,7 +166,6 @@
         <div class="dashboard-container">
             <div class="dashboard-header">
                 <h1>Dashboard</h1>
-                <!-- <div id="walletAddress">Connected: {{.User.Address}}</div> -->
             </div>
 
             <div class="dashboard-stats">
@@ -187,74 +186,51 @@
             <div class="dashboard-sections">
                 <div class="dashboard-section">
                     <h2>Recent Expressions</h2>
+                    {{if .RecentExpressions}}
                     <div class="expression-list">
-                        {{if .RecentExpressions}}
-                            {{range .RecentExpressions}}
-                            <div class="expression-item">
-                                <div class="content">{{.Content}}</div>
-                                <div class="meta">
-                                    <span class="timestamp">{{.Timestamp}}</span>
-                                    <span class="acknowledgements">{{.AcknowledgementCount}} acknowledgements</span>
-                                </div>
+                        {{range .RecentExpressions}}
+                        <div class="expression-item">
+                            <div class="content">{{.Content}}</div>
+                            <div class="meta">
+                                <span class="timestamp">{{.Timestamp}}</span>
+                                <span class="acknowledgements">{{.AcknowledgementCount}} acknowledgements</span>
                             </div>
-                            {{end}}
-                        {{else}}
-                            <div class="empty-state">
-                                <p>No expressions yet</p>
-                                <button class="btn-primary" onclick="createExpression()">Create Expression</button>
-                            </div>
+                        </div>
                         {{end}}
                     </div>
+                    {{else}}
+                    <div class="empty-state">
+                        <p>No expressions yet</p>
+                        <button class="btn-primary" onclick="createExpression()">Create Expression</button>
+                    </div>
+                    {{end}}
                 </div>
 
                 <div class="dashboard-section">
                     <h2>Proof NFTs</h2>
+                    {{if .Proofs}}
                     <div class="proof-list">
-                        {{if .Proofs}}
-                            {{range .Proofs}}
-                            <div class="proof-item">
-                                <div class="proof-info">
-                                    <div>Token ID: {{.TokenId}}</div>
-                                    <div class="timestamp">{{.Timestamp}}</div>
-                                </div>
-                                <div class="status {{.Status}}">{{.Status}}</div>
+                        {{range .Proofs}}
+                        <div class="proof-item">
+                            <div class="content">
+                                <div>Token ID: {{.TokenID}}</div>
+                                <div class="meta">Expression: {{.ExpressionID}}</div>
                             </div>
-                            {{end}}
-                        {{else}}
-                            <div class="empty-state">
-                                <p>No proof NFTs yet</p>
-                                <button class="btn-primary" onclick="requestProof()">Request Proof NFT</button>
+                            <div class="status {{if .Approved}}approved{{else}}pending{{end}}">
+                                {{if .Approved}}Approved{{else}}Pending{{end}}
                             </div>
+                        </div>
                         {{end}}
                     </div>
+                    {{else}}
+                    <div class="empty-state">
+                        <p>No proof NFTs yet</p>
+                    </div>
+                    {{end}}
                 </div>
             </div>
         </div>
     </main>
-
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-section">
-                <h3>About</h3>
-                <p>Proof of Peacemaking is a platform for fostering positive interactions and acknowledging peaceful resolutions.</p>
-            </div>
-            <div class="footer-section">
-                <h3>Links</h3>
-                <a href="/about">About</a>
-                <a href="/terms">Terms</a>
-                <a href="/privacy">Privacy</a>
-            </div>
-            <div class="footer-section">
-                <h3>Connect</h3>
-                <a href="https://twitter.com" target="_blank">Twitter</a>
-                <a href="https://discord.com" target="_blank">Discord</a>
-                <a href="https://github.com" target="_blank">GitHub</a>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2024 Proof of Peacemaking. All rights reserved.</p>
-        </div>
-    </footer>
 
     <script src="/static/js/wallet.js"></script>
     <script src="/static/js/main.js"></script>
@@ -262,28 +238,6 @@
     async function createExpression() {
         // TODO: Show modal or form for creating expression
         console.log('Opening create expression modal...');
-    }
-
-    async function requestProof() {
-        try {
-            const response = await fetch('/api/proofs/request', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include'
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to request proof NFT');
-            }
-
-            // Refresh the dashboard to show the new proof request
-            window.location.reload();
-        } catch (error) {
-            console.error('Error requesting proof NFT:', error);
-            alert('Failed to request proof NFT. Please try again.');
-        }
     }
     </script>
 </body>
