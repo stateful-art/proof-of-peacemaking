@@ -245,7 +245,7 @@ classDiagram
 
 ## Roadmap
 
-### Current Status (Q1 2024)
+### Current Status (Q4 2024)
 
 ✅ **Completed**
 - Basic authentication with MetaMask
@@ -260,7 +260,7 @@ classDiagram
 - Activity feed implementation
 - User dashboard
 
-### Q2 2024 Planned
+### Q1-Q2 2025 Planned
 
 #### Core Features
 - IPFS integration for content storage
@@ -290,7 +290,18 @@ classDiagram
   - Protocol Labs
   - Web3 Foundation
 
-### Q3 2024 Planned
+#### Platform Growth
+- Community building
+  - Ambassador program
+  - Educational content
+  - Community events
+- Partnership development
+  - Peace organizations
+  - Academic institutions
+  - Web3 projects
+
+
+### Q3 2025 Planned
 
 #### Advanced Features
 - Soulbound NFT implementation
@@ -302,17 +313,13 @@ classDiagram
   - Community engagement stats
   - Network effect analysis
 
-#### Platform Growth
-- Community building
-  - Ambassador program
-  - Educational content
-  - Community events
-- Partnership development
-  - Peace organizations
-  - Academic institutions
-  - Web3 projects
+#### Sustainability
+- Grant applications
+- Sponsorship programs
+- Ecosystem fund
+- Sustainable revenue model
 
-### Q4 2024 and Beyond
+### Q4 2025 and Beyond
 
 #### Ecosystem Development
 - Governance system
@@ -324,11 +331,7 @@ classDiagram
   - Layer 2 solutions
   - Other peace initiatives
 
-#### Sustainability
-- Grant applications
-- Sponsorship programs
-- Ecosystem fund
-- Sustainable revenue model
+
 
 ### Gas Subsidization Strategy
 
