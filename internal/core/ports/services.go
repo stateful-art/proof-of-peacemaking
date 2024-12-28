@@ -16,7 +16,9 @@ type NotificationService interface {
 
 type AuthService interface {
 	GenerateNonce(ctx context.Context, address string) (int, error)
-	VerifySignature(ctx context.Context, address string, signature string) (bool, error)
+	VerifySignature(ctx context.Context, address string, signature string) (bool, string, error)
+	Register(ctx context.Context, address string, email string) (*domain.User, string, error)
+	VerifyToken(ctx context.Context, token string) (string, error)
 }
 
 type ExpressionService interface {

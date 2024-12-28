@@ -12,6 +12,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) error
 	FindByAddress(ctx context.Context, address string) (*domain.User, error)
 	UpdateNonce(ctx context.Context, id primitive.ObjectID, nonce int) error
+	Update(ctx context.Context, user *domain.User) error
 }
 
 type NotificationRepository interface {
