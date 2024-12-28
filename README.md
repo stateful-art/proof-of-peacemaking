@@ -19,6 +19,16 @@ Proof of Peacemaking is a Web3 platform that enables users to:
 - **User Dashboard**: Track personal contributions and stats
 - **Proof NFTs**: Earn soulbound tokens for verified agreements
 
+
+## Acknowledgments
+
+- [Nick Mudge](https://github.com/mudgen) for his initiative, [Diamond Pattern (EIP-2535)](https://eips.ethereum.org/EIPS/eip-2535)
+- The Ethereum community for blockchain infrastructure
+- Protocol Labs for IPFS and Filecoin
+
+- The Golang and Fiber communities for excellent tooling
+- All contributors who have helped shape this project
+
 ## Tech Stack
 
 ### Backend
@@ -372,7 +382,7 @@ We're actively seeking:
 
 For collaboration opportunities, please:
 - Check our [Contributing Guidelines](CONTRIBUTING.md)
-- Join our community channels
+- Join our [discord](https://discord.gg/sqjdyCWNAR)
 - Contact us at contact@stateful.art
 
 ## Getting Started
@@ -387,7 +397,7 @@ For collaboration opportunities, please:
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/proof-of-peacemaking.git
+git clone https://github.com/stateful-art/proof-of-peacemaking.git
 cd proof-of-peacemaking
 ```
 
@@ -423,20 +433,9 @@ npm install
 npx hardhat test
 ```
 
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
 ## License
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE.md).
 
-## Acknowledgments
-
-- The Ethereum community for blockchain infrastructure
-- Protocol Labs for IPFS
-- Nick Mudge for the Diamond Pattern
-- The Go community for excellent tooling
-- All contributors who have helped shape this project
 
 
