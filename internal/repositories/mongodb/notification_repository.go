@@ -2,8 +2,10 @@ package mongodb
 
 import (
 	"context"
+	"time"
 
-	"github.com/stateful-art/proof-of-peacemaking/internal/core/domain"
+	"proofofpeacemaking/internal/core/domain"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -29,21 +31,17 @@ func (r *notificationRepository) CreateUserNotification(ctx context.Context, un 
 
 func (r *notificationRepository) GetUserUnreadNotifications(ctx context.Context, userID primitive.ObjectID) ([]*domain.Notification, error) {
 	pipeline := mongo.Pipeline{
-		{{
-			"$match": bson.M{
-				"userId": userID,
-				"read":   false,
-			},
-		}},
-		{{
-			"$lookup": bson.M{
-				"from":         "notifications",
-				"localField":   "notificationId",
-				"foreignField": "_id",
-				"as":           "notification",
-			},
-		}},
-		{{"$unwind": "$notification"}},
+		{{"$match", bson.M{
+			"userId": userID,
+			"read":   false,
+		}}},
+		{{"$lookup", bson.M{
+			"from":         "notifications",
+			"localField":   "notificationId",
+			"foreignField": "_id",
+			"as":           "notification",
+		}}},
+		{{"$unwind", "$notification"}},
 	}
 
 	cursor, err := r.db.Collection("user_notifications").Aggregate(ctx, pipeline)
@@ -57,4 +55,21 @@ func (r *notificationRepository) GetUserUnreadNotifications(ctx context.Context,
 	}
 
 	return notifications, nil
+}
+
+func (r *notificationRepository) MarkAsRead(ctx context.Context, userID, notificationID primitive.ObjectID) error {
+	_, err := r.db.Collection("user_notifications").UpdateOne(
+		ctx,
+		bson.M{
+			"userId":         userID,
+			"notificationId": notificationID,
+		},
+		bson.M{
+			"$set": bson.M{
+				"read":   true,
+				"readAt": time.Now(),
+			},
+		},
+	)
+	return err
 }

@@ -3,7 +3,8 @@ package ports
 import (
 	"context"
 
-	"github.com/stateful-art/proof-of-peacemaking/web/internal/core/domain"
+	"proofofpeacemaking/internal/core/domain"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

@@ -1,6 +1,6 @@
 package handlers
 
-import "github.com/stateful-art/proof-of-peacemaking/internal/core/ports"
+import "proofofpeacemaking/internal/core/ports"
 
 type Handlers struct {
 	Auth            *AuthHandler

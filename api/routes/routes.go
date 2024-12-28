@@ -1,12 +1,20 @@
 package routes
 
 import (
+	"proofofpeacemaking/internal/handlers"
+	"proofofpeacemaking/internal/middleware"
+
 	"github.com/gofiber/fiber/v2"
-	"github.com/stateful-art/proof-of-peacemaking/internal/handlers"
-	"github.com/stateful-art/proof-of-peacemaking/internal/middleware"
 )
 
 func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
+	// Home page
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.Render("index", fiber.Map{
+			"Title": "Proof of Peacemaking",
+		})
+	})
+
 	// Public routes
 	app.Post("/auth/nonce", h.Auth.GenerateNonce)
 	app.Post("/auth/verify", h.Auth.VerifySignature)
