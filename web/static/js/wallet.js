@@ -14,30 +14,40 @@ function waitForEthers() {
 
 let provider;
 let signer;
+let isConnected = false;
+let currentAddress = null;
 
+// Add this function to check if wallet is already connected
+async function checkConnection() {
+    if (window.ethereum) {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) {
+            await connectWallet();
+        }
+    }
+}
+
+// Update the connectWallet function
 async function connectWallet() {
     try {
         await waitForEthers();
 
-        // Check if MetaMask is installed
         if (typeof window.ethereum === 'undefined') {
             alert('Please install MetaMask to use this application');
             return;
         }
 
-        // Request account access
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         console.log('Connected accounts:', accounts);
         
-        // Setup ethers provider and signer
         provider = new ethers.BrowserProvider(window.ethereum);
         signer = await provider.getSigner();
         
-        // Get and display the connected address
         const address = await signer.getAddress();
         console.log('Connected wallet address:', address);
+        currentAddress = address;
+        isConnected = true;
 
-        // Get and log network information
         const network = await provider.getNetwork();
         console.log('Connected network:', {
             name: network.name,
@@ -48,12 +58,9 @@ async function connectWallet() {
         const balance = await provider.getBalance(address);
         console.log('Wallet balance:', ethers.formatEther(balance), 'ETH');
 
-        const connectButton = document.getElementById('connectWallet');
-        if (connectButton) {
-            connectButton.textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
-        }
+        updateWalletButton(address);
         
-        // Update wallet status if on dashboard
+        // Update dashboard if on dashboard page
         const walletAddress = document.getElementById('walletAddress');
         if (walletAddress) {
             walletAddress.textContent = `Connected: ${address}`;
@@ -70,22 +77,111 @@ async function connectWallet() {
     }
 }
 
-// Wait for document to load before adding event listeners
+// Add disconnect function
+async function disconnectWallet() {
+    isConnected = false;
+    currentAddress = null;
+    provider = null;
+    signer = null;
+    
+    const walletButton = document.getElementById('connectWallet');
+    walletButton.innerHTML = 'Connect Wallet';
+    walletButton.className = 'btn-connect';
+    
+    const dropdown = document.querySelector('.dropdown-content');
+    if (dropdown) {
+        dropdown.classList.remove('show');
+    }
+
+    // Update dashboard if on dashboard page
+    const walletAddress = document.getElementById('walletAddress');
+    if (walletAddress) {
+        walletAddress.textContent = 'Not connected';
+        const networkInfo = document.getElementById('networkInfo');
+        if (networkInfo) {
+            networkInfo.textContent = 'Please connect your wallet';
+        }
+    }
+}
+
+// Add function to update wallet button
+function updateWalletButton(address) {
+    const walletButton = document.getElementById('connectWallet');
+    const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+    
+    walletButton.innerHTML = `
+        <span>${shortAddress}</span>
+        <div class="dropdown-content">
+            <div class="wallet-info">
+                <div>Connected Wallet</div>
+                <div class="wallet-address">${address}</div>
+            </div>
+            <button onclick="copyAddress('${address}')">Copy Address</button>
+            <button onclick="viewOnExplorer('${address}')">View on Explorer</button>
+            <button class="disconnect" onclick="disconnectWallet()">Disconnect</button>
+        </div>
+    `;
+    walletButton.className = 'wallet-button connected';
+}
+
+// Add utility functions
+function copyAddress(address) {
+    navigator.clipboard.writeText(address);
+    alert('Address copied to clipboard!');
+}
+
+function viewOnExplorer(address) {
+    const explorerUrl = `https://etherscan.io/address/${address}`;
+    window.open(explorerUrl, '_blank');
+}
+
+// Toggle dropdown
+function toggleDropdown(event) {
+    if (isConnected) {
+        const dropdown = event.currentTarget.querySelector('.dropdown-content');
+        dropdown.classList.toggle('show');
+        event.stopPropagation();
+    }
+}
+
+// Close dropdown when clicking outside
+window.onclick = function(event) {
+    if (!event.target.matches('.wallet-button')) {
+        const dropdowns = document.getElementsByClassName('dropdown-content');
+        for (const dropdown of dropdowns) {
+            if (dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+            }
+        }
+    }
+}
+
+// Update the event listeners
 document.addEventListener('DOMContentLoaded', () => {
     const connectButton = document.getElementById('connectWallet');
     if (connectButton) {
-        connectButton.addEventListener('click', connectWallet);
+        connectButton.addEventListener('click', async (e) => {
+            if (isConnected) {
+                toggleDropdown(e);
+            } else {
+                await connectWallet();
+            }
+        });
     }
 
-    // Listen for account changes
+    // Check if already connected
+    checkConnection();
+
     if (window.ethereum) {
         window.ethereum.on('accountsChanged', function (accounts) {
-            connectWallet();
+            if (accounts.length === 0) {
+                disconnectWallet();
+            } else {
+                connectWallet();
+            }
         });
 
-        // Listen for chain changes
         window.ethereum.on('chainChanged', function (chainId) {
-            // Reload the page on chain change as recommended by MetaMask
             window.location.reload();
         });
     }
