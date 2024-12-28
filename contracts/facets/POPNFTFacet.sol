@@ -1,0 +1,1 @@
+// Similar structure but for NFT minting 

@@ -1,41 +1,120 @@
 # Proof of Peacemaking
 
-A decentralized platform for creating and acknowledging expressions of peace, with verifiable proof as soulbound NFTs.
+## Contract Structure
+```
+contracts/
+├── Diamond.sol                 # Main diamond contract
+├── facets/
+│   ├── DiamondCutFacet.sol    # Handles upgrades
+│   ├── DiamondLoupeFacet.sol  # Contract inspection
+│   ├── ExpressionFacet.sol    # Expression functionality
+│   ├── AcknowledgementFacet.sol # Acknowledgement functionality
+│   ├── POPNFTFacet.sol        # NFT minting functionality
+│   └── PermissionsFacet.sol   # Permission management
+├── libraries/
+│   ├── LibDiamond.sol         # Diamond storage & core functions
+│   ├── LibStorage.sol         # Shared storage structure
+│   └── LibPermissions.sol     # Permission & subsidy logic
+└── interfaces/
+    ├── IDiamondCut.sol        # Diamond upgrade interface
+    └── IDiamondLoupe.sol      # Diamond inspection interface
+```
 
-## Architecture
+## Architecture (Diamond Pattern)
+
+```mermaid
+graph TD
+    subgraph Diamond
+        D[Diamond.sol]
+        DC[DiamondCutFacet]
+        DL[DiamondLoupeFacet]
+    end
+
+    subgraph Core Facets
+        EF[ExpressionFacet]
+        AF[AcknowledgementFacet]
+        NF[POPNFTFacet]
+        PF[PermissionsFacet]
+    end
+
+    subgraph Libraries
+        LD[LibDiamond]
+        LS[LibStorage]
+        LP[LibPermissions]
+    end
+
+    D --> DC
+    D --> DL
+    D --> EF
+    D --> AF
+    D --> NF
+    D --> PF
+
+    EF --> LS
+    EF --> LP
+    AF --> LS
+    AF --> LP
+    NF --> LS
+    NF --> LP
+    PF --> LP
+    PF --> LD
+```
+
+## Data Flow with Diamond Pattern
 
 ```mermaid
 sequenceDiagram
     participant User1 as Expression Creator
     participant User2 as Acknowledger
-    participant PO as ProxyOperator
-    participant E as Expression Contract
-    participant A as Acknowledgement Contract
-    participant NFT as POPNFT Contract
+    participant D as Diamond Proxy
+    participant EF as Expression Facet
+    participant AF as Acknowledgement Facet
+    participant NF as NFT Facet
     participant IPFS
 
     Note over User1,IPFS: 1. Expression Creation
-    User1->>IPFS: Upload expression content
+    User1->>IPFS: Upload content
     IPFS-->>User1: Return IPFS hash
-    User1->>PO: Sign message (content + IPFS hash)
-    PO->>E: createExpression()
-    E-->>User1: ExpressionCreated event
+    User1->>D: createExpression()
+    D->>EF: delegate call
+    Note right of EF: Check subsidization
+    EF-->>User1: ExpressionCreated event
 
     Note over User2,IPFS: 2. Acknowledgment
-    User2->>IPFS: Upload acknowledgment content
+    User2->>IPFS: Upload content
     IPFS-->>User2: Return IPFS hash
-    User2->>PO: Sign message (content + IPFS hash)
-    PO->>A: createAcknowledgement()
-    A-->>User2: AcknowledgementCreated event
+    User2->>D: createAcknowledgement()
+    D->>AF: delegate call
+    Note right of AF: Check subsidization
+    AF-->>User2: AcknowledgementCreated event
 
-    Note over User1,User2: 3. Off-chain NFT Agreement
-    User1->>PO: Sign message for NFT minting
-    User2->>PO: Sign message for NFT minting
-    
-    Note over PO,NFT: 4. NFT Minting
-    PO->>NFT: mintProofs(expressionId, acknowledgementId)
-    NFT-->>User1: Mint soulbound NFT
-    NFT-->>User2: Mint soulbound NFT
+    Note over User1,User2: 3. NFT Minting
+    User1->>D: Sign for NFT
+    User2->>D: Sign for NFT
+    D->>NF: mintProofs()
+    NF-->>User1: Mint NFT
+    NF-->>User2: Mint NFT
+```
+
+## Gas Subsidization in Diamond Pattern
+
+The Diamond pattern enables flexible gas subsidization:
+1. Each operator can be activated/deactivated
+2. Operators can subsidize specific operations for specific users
+3. Subsidization is managed through PermissionsFacet
+4. Each operation (Expression/Acknowledgement/NFT) can be subsidized independently
+
+Example:
+```solidity
+// Set operator status
+permissionsFacet.setOperatorStatus(operator, true);
+
+// Set subsidies for users
+permissionsFacet.setOperatorSubsidies(
+    [user1, user2],
+    [EXPRESSION_PERMISSION, ACKNOWLEDGEMENT_PERMISSION],
+    [true, true]
+);
 ```
 
 ## Components
