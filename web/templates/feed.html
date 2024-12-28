@@ -201,13 +201,15 @@
         <div class="feed-container">
             <div class="feed-header">
                 <h1>Activity Feed</h1>
+                {{if .Activities}}
                 <button class="btn-primary" onclick="createExpression()">Create Expression</button>
+                {{end}}
             </div>
             
             <div class="feed-content">
                 <div class="feed-sidebar">
                     <div class="user-info">
-                        <div id="walletAddress">Connected: {{.User.Address}}</div>
+                        <!-- <div id="walletAddress">Connected: {{.User.Address}}</div> -->
                         <div id="networkInfo"></div>
                     </div>
                     <div class="feed-filters">
@@ -249,7 +251,7 @@
                     {{else}}
                         <div class="empty-feed">
                             <div class="empty-state">
-                                <h2>No Expressions Yet</h2>
+                                <h2>No expression shared yet</h2>
                                 <p>Be the first to share an expression of peace!</p>
                                 <button class="btn-primary" onclick="createExpression()">Create Expression</button>
                             </div>
