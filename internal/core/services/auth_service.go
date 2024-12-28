@@ -207,3 +207,25 @@ func (s *authService) VerifyToken(ctx context.Context, token string) (string, er
 	}
 	return session.Address, nil
 }
+
+func (s *authService) Logout(ctx context.Context, token string) error {
+	// Find the session
+	session, err := s.sessionRepo.FindByToken(ctx, token)
+	if err != nil {
+		return fmt.Errorf("failed to find session: %w", err)
+	}
+	if session == nil {
+		return nil // Session already invalid, nothing to do
+	}
+
+	// Invalidate the session by setting expiry to now
+	session.ExpiresAt = time.Now()
+	session.UpdatedAt = time.Now()
+
+	// Update the session in the database
+	if err := s.sessionRepo.Update(ctx, session); err != nil {
+		return fmt.Errorf("failed to invalidate session: %w", err)
+	}
+
+	return nil
+}

@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"fmt"
 	"proofofpeacemaking/internal/core/domain"
 	"time"
 
@@ -42,10 +43,31 @@ func (r *sessionRepository) DeleteByToken(ctx context.Context, token string) err
 }
 
 func (r *sessionRepository) DeleteExpired(ctx context.Context) error {
-	_, err := r.db.Collection("sessions").DeleteMany(ctx, bson.M{
-		"expiresAt": bson.M{
-			"$lt": time.Now(),
+	filter := bson.M{"expiresAt": bson.M{"$lt": time.Now()}}
+	_, err := r.db.Collection("sessions").DeleteMany(ctx, filter)
+	if err != nil {
+		return fmt.Errorf("failed to delete expired sessions: %w", err)
+	}
+	return nil
+}
+
+func (r *sessionRepository) Update(ctx context.Context, session *domain.Session) error {
+	filter := bson.M{"_id": session.ID}
+	update := bson.M{
+		"$set": bson.M{
+			"expiresAt": session.ExpiresAt,
+			"updatedAt": session.UpdatedAt,
 		},
-	})
-	return err
+	}
+
+	result, err := r.db.Collection("sessions").UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to update session: %w", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("session not found")
+	}
+
+	return nil
 }

@@ -130,6 +130,16 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
+	// Get session token from cookie
+	sessionToken := c.Cookies("session")
+	if sessionToken != "" {
+		// Invalidate session in database
+		if err := h.authService.Logout(c.Context(), sessionToken); err != nil {
+			log.Printf("[AUTH] Error invalidating session: %v", err)
+			// Continue with cookie cleanup even if session invalidation fails
+		}
+	}
+
 	// Clear the session cookie
 	c.Cookie(&fiber.Cookie{
 		Name:     "session",

@@ -2,24 +2,438 @@
 
 A decentralized platform for creating and acknowledging expressions of peace, with verifiable proof stored on the blockchain.
 
+## Overview
+
+Proof of Peacemaking is a Web3 platform that enables users to:
+- Create expressions of peace on the blockchain
+- Acknowledge and support peaceful resolutions
+- Generate verifiable proof of agreements
+- Earn soulbound NFTs for meaningful contributions
+
 ## Features
 
-- Connect with MetaMask wallet
-- Create expressions of peace on Ethereum blockchain
-- Acknowledge peace expressions to form bilateral agreements
-- Generate proof of peacemaking documents
-- Store documents on IPFS
-- Create soulbound NFTs as proof of agreement
-- Email notifications for participants
+- **Wallet Integration**: Secure authentication with MetaMask
+- **Expression Creation**: Share and document peaceful resolutions
+- **Acknowledgements**: Support and verify expressions of peace
+- **Activity Feed**: Real-time updates of community activity
+- **User Dashboard**: Track personal contributions and stats
+- **Proof NFTs**: Earn soulbound tokens for verified agreements
 
 ## Tech Stack
 
-- Backend: Go with Fiber framework
-- Frontend: HTML, JavaScript, CSS
-- Blockchain: Ethereum (Solidity)
-- Storage: IPFS
-- Wallet Integration: MetaMask (Web3.js)
+### Backend
+- **Language**: Go 1.21+
+- **Framework**: Fiber (high-performance web framework)
+- **Database**: MongoDB (for user data and sessions)
+- **Authentication**: Ethereum wallet-based (MetaMask)
+
+### Frontend
+- **Core**: HTML5, CSS3, JavaScript
+- **Web3**: ethers.js for blockchain interaction
+- **Styling**: Custom CSS with responsive design
+
+### Infrastructure
+- **Blockchain**: Ethereum (Sepolia testnet)
+- **Smart Contracts**: Solidity with Diamond Pattern
+- **Storage**: IPFS for decentralized content
 
 ## Project Structure
+
+```
+proof-of-peacemaking/
+├── cmd/                    # Application entrypoints
+├── internal/              # Internal packages
+│   ├── core/             # Core business logic
+│   │   ├── domain/       # Domain models
+│   │   ├── ports/        # Interfaces
+│   │   └── services/     # Business logic implementation
+│   ├── handlers/         # HTTP handlers
+│   ├── middleware/       # HTTP middleware
+│   └── repositories/     # Data access layer
+├── web/                  # Web assets
+│   ├── static/          # Static files (JS, CSS)
+│   └── templates/       # HTML templates
+├── contracts/           # Smart contracts
+└── docs/               # Documentation
+```
+
+## Smart Contract Architecture
+
+The project uses the Diamond Pattern for upgradeable and modular smart contracts:
+
+```
+contracts/
+├── Diamond.sol                 # Main diamond contract
+├── facets/
+│   ├── DiamondCutFacet.sol    # Handles upgrades
+│   ├── DiamondLoupeFacet.sol  # Contract inspection
+│   ├── ExpressionFacet.sol    # Expression functionality
+│   ├── AcknowledgementFacet.sol # Acknowledgement functionality
+│   ├── POPNFTFacet.sol        # NFT minting functionality
+│   └── PermissionsFacet.sol   # Permission management
+├── libraries/
+│   ├── LibDiamond.sol         # Diamond storage & core functions
+│   ├── LibStorage.sol         # Shared storage structure
+│   └── LibPermissions.sol     # Permission & subsidy logic
+└── interfaces/
+    ├── IDiamondCut.sol        # Diamond upgrade interface
+    └── IDiamondLoupe.sol      # Diamond inspection interface
+```
+
+### Diamond Pattern Benefits
+
+The Diamond Pattern provides several key advantages for our smart contract architecture:
+
+1. **Storage Management**
+   - Solves the contract size limitation (24KB)
+   - Enables shared storage between facets
+   - Provides structured storage patterns
+
+2. **Modularity**
+   - Separates concerns into focused facets
+   - Enables independent testing and auditing
+   - Simplifies maintenance and updates
+
+3. **Upgradeability**
+   - Allows adding new functionality
+   - Enables bug fixes without redeployment
+   - Preserves contract state during upgrades
+
+4. **Gas Efficiency**
+   - Optimizes function selector handling
+   - Reduces deployment costs through reuse
+   - Enables gas-optimized storage patterns
+
+5. **Security**
+   - Immutable core functionality
+   - Granular access control
+   - Transparent upgrade process
+
+### Data Flow
+
+```mermaid
+sequenceDiagram
+    participant User1 as Expression Creator
+    participant User2 as Acknowledger
+    participant D as Diamond Proxy
+    participant EF as Expression Facet
+    participant AF as Acknowledgement Facet
+    participant NF as NFT Facet
+    participant IPFS
+
+    Note over User1,IPFS: 1. Expression Creation
+    User1->>IPFS: Upload content
+    IPFS-->>User1: Return IPFS hash
+    User1->>D: createExpression()
+    D->>EF: delegate call
+    Note right of EF: Check subsidization
+    EF-->>User1: ExpressionCreated event
+
+    Note over User2,IPFS: 2. Acknowledgment
+    User2->>IPFS: Upload content
+    IPFS-->>User2: Return IPFS hash
+    User2->>D: createAcknowledgement()
+    D->>AF: delegate call
+    Note right of AF: Check subsidization
+    AF-->>User2: AcknowledgementCreated event
+
+    Note over User1,User2: 3. NFT Minting
+    User1->>D: Sign for NFT
+    User2->>D: Sign for NFT
+    D->>NF: mintProofs()
+    NF-->>User1: Mint NFT
+    NF-->>User2: Mint NFT
+```
+
+### Facet Functionality
+
+1. **ExpressionFacet**
+   - Creates and stores expressions
+   - Manages expression metadata
+   - Emits events for frontend tracking
+
+2. **AcknowledgementFacet**
+   - Links acknowledgments to expressions
+   - Prevents duplicate acknowledgments
+   - Maintains acknowledgment history
+
+3. **POPNFTFacet**
+   - Creates soulbound NFTs
+   - Manages dual-signature minting
+   - Stores comprehensive metadata
+
+4. **PermissionsFacet**
+   - Manages operator permissions
+   - Controls gas subsidization
+   - Handles access control
+
+## Domain Model
+
+```mermaid
+classDiagram
+    User "1" -- "*" Expression
+    User "1" -- "*" Acknowledgement
+    User "1" -- "*" Notification
+    User "1" -- "*" Session
+    Expression "1" -- "*" Acknowledgement
+    Expression "1" -- "1" ProofNFT
+    User "1" -- "*" ProofNFT
+    Notification "1" -- "*" UserNotification
+    User "1" -- "*" UserNotification
+
+    class User {
+        +ID ObjectID
+        +Address string
+        +Email string
+        +Nonce int
+        +CreatedAt time
+        +UpdatedAt time
+    }
+
+    class Expression {
+        +ID ObjectID
+        +Content string
+        +CreatorAddress string
+        +AcknowledgementCount int
+        +CreatedAt time
+    }
+
+    class Acknowledgement {
+        +ID ObjectID
+        +ExpressionID ObjectID
+        +CreatorAddress string
+        +Content string
+        +CreatedAt time
+    }
+
+    class ProofNFT {
+        +ID ObjectID
+        +TokenID string
+        +ExpressionID ObjectID
+        +OwnerAddress string
+        +Approved bool
+        +CreatedAt time
+    }
+
+    class Session {
+        +ID ObjectID
+        +UserID ObjectID
+        +Token string
+        +Address string
+        +ExpiresAt time
+        +CreatedAt time
+        +UpdatedAt time
+    }
+
+    class Notification {
+        +ID ObjectID
+        +Type string
+        +Title string
+        +Content string
+        +CreatedAt time
+    }
+
+    class UserNotification {
+        +ID ObjectID
+        +UserID ObjectID
+        +NotificationID ObjectID
+        +Read bool
+        +CreatedAt time
+        +UpdatedAt time
+    }
+```
+
+## Roadmap
+
+### Current Status (Q1 2024)
+
+✅ **Completed**
+- Basic authentication with MetaMask
+- Session management
+- User profile system
+- Basic frontend structure
+- Smart contract architecture (Diamond Pattern)
+
+🚧 **In Progress**
+- Expression creation and management
+- Acknowledgement system
+- Activity feed implementation
+- User dashboard
+
+### Q2 2024 Planned
+
+#### Core Features
+- IPFS integration for content storage
+- Expression creation and management
+  - Multimedia support (text, images, audio)
+  - Content moderation system
+  - Expression categorization
+- Acknowledgement system
+  - Dual-signature verification
+  - Acknowledgement types and categories
+  - Reputation system
+
+#### Smart Contracts
+- Deploy Diamond proxy contract
+- Implement and test facets:
+  - Expression management
+  - Acknowledgement handling
+  - NFT minting
+  - Permission management
+
+#### Gas Subsidization
+- Implement gas subsidization system
+- Develop operator management
+- Create sponsorship program
+- Apply for ecosystem grants:
+  - Ethereum Foundation
+  - Protocol Labs
+  - Web3 Foundation
+
+### Q3 2024 Planned
+
+#### Advanced Features
+- Soulbound NFT implementation
+  - Proof of peacemaking tokens
+  - Achievement badges
+  - Reputation tokens
+- Advanced analytics
+  - Peace impact metrics
+  - Community engagement stats
+  - Network effect analysis
+
+#### Platform Growth
+- Community building
+  - Ambassador program
+  - Educational content
+  - Community events
+- Partnership development
+  - Peace organizations
+  - Academic institutions
+  - Web3 projects
+
+### Q4 2024 and Beyond
+
+#### Ecosystem Development
+- Governance system
+  - Community voting
+  - Proposal system
+  - Treasury management
+- Integration possibilities
+  - Cross-chain support
+  - Layer 2 solutions
+  - Other peace initiatives
+
+#### Sustainability
+- Grant applications
+- Sponsorship programs
+- Ecosystem fund
+- Sustainable revenue model
+
+### Gas Subsidization Strategy
+
+To make the platform accessible to all users, we're implementing a comprehensive gas subsidization strategy:
+
+1. **Target Groups**
+   - Peace organizations
+   - Academic institutions
+   - Non-profit entities
+   - Individual peacemakers
+   - Developing region users
+
+2. **Funding Sources**
+   - Ecosystem grants
+   - Corporate sponsorships
+   - Foundation partnerships
+   - Community treasury
+
+3. **Implementation**
+   - Smart contract operator system
+   - Gas cost estimation
+   - Usage limits and caps
+   - Transparent reporting
+
+4. **Sustainability**
+   - Long-term partnerships
+   - Renewable funding sources
+   - Community governance
+   - Impact metrics
+
+### Get Involved
+
+We're actively seeking:
+- Contributors (technical and non-technical)
+- Partners and sponsors
+- Grant opportunities
+- Community ambassadors
+
+For collaboration opportunities, please:
+- Check our [Contributing Guidelines](CONTRIBUTING.md)
+- Join our community channels
+- Contact us at contact@stateful.art
+
+## Getting Started
+
+### Prerequisites
+- Go 1.21+
+- MongoDB 6.0+
+- Node.js 18+ (for contract development)
+- MetaMask wallet
+
+### Installation
+
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/proof-of-peacemaking.git
+cd proof-of-peacemaking
+```
+
+2. Set up environment variables
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+3. Install dependencies
+```bash
+go mod download
+```
+
+4. Run the application
+```bash
+go run cmd/server/main.go
+```
+
+The application will be available at `http://localhost:3003`
+
+## Development
+
+### Running Tests
+```bash
+go test ./...
+```
+
+### Smart Contract Development
+```bash
+cd contracts
+npm install
+npx hardhat test
+```
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE.md).
+
+## Acknowledgments
+
+- The Ethereum community for blockchain infrastructure
+- Protocol Labs for IPFS
+- Nick Mudge for the Diamond Pattern
+- The Go community for excellent tooling
+- All contributors who have helped shape this project
 
 

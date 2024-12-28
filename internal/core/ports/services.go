@@ -21,6 +21,7 @@ type AuthService interface {
 	VerifySignature(ctx context.Context, address string, signature string) (bool, string, error)
 	Register(ctx context.Context, address string, email string) (*domain.User, string, error)
 	VerifyToken(ctx context.Context, token string) (string, error)
+	Logout(ctx context.Context, token string) error
 }
 
 type ExpressionService interface {
