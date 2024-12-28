@@ -1,61 +1,73 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Title}} - Proof of Peacemaking</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
-    <script type="module" src="/static/js/ethers-init.js"></script>
-</head>
-<body>
-    <nav>
-        <div class="nav-container">
-            <a href="/" class="logo">Proof of Peacemaking</a>
-            <div class="nav-links">
-                <a href="/">Home</a>
-                <a href="/dashboard">Dashboard</a>
-                <button id="connectWallet" class="btn-connect">Connect Wallet</button>
-            </div>
+{{template "layout" .}}
+
+{{define "content"}}
+<div class="home-container">
+    <div class="hero-section">
+        <h1>Welcome to Proof of Peacemaking</h1>
+        <p class="hero-text">A platform for fostering positive interactions and acknowledging peaceful resolutions in the Web3 space.</p>
+        <div class="cta-buttons">
+            <a href="/feed" class="btn-primary">View Feed</a>
+            <a href="/dashboard" class="btn-secondary">Go to Dashboard</a>
         </div>
-    </nav>
+    </div>
+</div>
 
-    <main>
-        <div class="hero">
-            <h1>Create Lasting Peace</h1>
-            <p>Express and acknowledge peace on the blockchain with verifiable proof</p>
-            <div class="cta-buttons">
-                <button class="btn-primary" id="createExpression">Create Expression</button>
-                <button class="btn-secondary" id="viewExpressions">View Expressions</button>
-            </div>
-        </div>
+<style>
+.home-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
 
-        <section class="features">
-            <h2>How It Works</h2>
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <h3>1. Connect Wallet</h3>
-                    <p>Connect your MetaMask wallet to get started</p>
-                </div>
-                <div class="feature-card">
-                    <h3>2. Express Peace</h3>
-                    <p>Create your expression of peace on the blockchain</p>
-                </div>
-                <div class="feature-card">
-                    <h3>3. Acknowledge</h3>
-                    <p>Acknowledge expressions to form bilateral agreements</p>
-                </div>
-                <div class="feature-card">
-                    <h3>4. Get Proof</h3>
-                    <p>Receive verifiable proof as NFT and document</p>
-                </div>
-            </div>
-        </section>
-    </main>
+.hero-section {
+    text-align: center;
+    padding: 60px 20px;
+}
 
-    <footer>
-        <p>&copy; 2024 Proof of Peacemaking. All rights reserved.</p>
-    </footer>
-    <script src="/static/js/wallet.js"></script>
-    <script src="/static/js/main.js"></script>
-</body>
-</html> 
+.hero-section h1 {
+    font-size: 2.5em;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.hero-text {
+    font-size: 1.2em;
+    color: #666;
+    max-width: 600px;
+    margin: 0 auto 40px;
+    line-height: 1.6;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+.btn-primary {
+    padding: 12px 24px;
+    background: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background: #43A047;
+}
+
+.btn-secondary {
+    padding: 12px 24px;
+    background: #2196F3;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #1E88E5;
+}
+</style>
+{{end}} 

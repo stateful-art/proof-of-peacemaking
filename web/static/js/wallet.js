@@ -17,23 +17,64 @@ let signer;
 let isConnected = false;
 let currentAddress = null;
 
+// Check if user is already authenticated
+async function checkSession() {
+    try {
+        const response = await fetch('/auth/session', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        if (data.authenticated && data.address) {
+            isConnected = true;
+            currentAddress = data.address;
+            updateWalletButton(data.address);
+            
+            // Setup provider and signer only if we have window.ethereum
+            if (window.ethereum) {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+            }
+            
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error checking session:', error);
+        return false;
+    }
+}
+
 // Add this function to check if wallet is already connected
 async function checkConnection() {
-    if (window.ethereum) {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) {
-            await connectWallet();
-        }
+    // Only check if we have a valid session
+    const hasSession = await checkSession();
+    if (hasSession) {
+        return;
+    }
+
+    // If no session, just update the button to show Connect Wallet
+    const walletButton = document.getElementById('connectWallet');
+    if (walletButton) {
+        walletButton.innerHTML = 'Connect Wallet';
+        walletButton.className = 'btn-connect';
     }
 }
 
 // Update the connectWallet function
 async function connectWallet() {
     try {
+        // Check session first
+        const hasSession = await checkSession();
+        if (hasSession) {
+            return currentAddress;
+        }
+
         await waitForEthers();
 
         if (typeof window.ethereum === 'undefined') {
-            console.error('MetaMask not installed');
+            alert('Please install MetaMask to connect your wallet');
             return;
         }
 
@@ -53,7 +94,7 @@ async function connectWallet() {
                 throw new Error(errorData.error || 'Failed to get nonce');
             }
             const nonceData = await nonceResponse.json();
-            
+
             // Create message for signing
             const message = `Sign this message to verify your wallet. Nonce: ${nonceData.nonce}`;
             console.log('Signing message:', message);
@@ -94,17 +135,6 @@ async function connectWallet() {
             provider = new ethers.BrowserProvider(window.ethereum);
             signer = await provider.getSigner();
 
-            // Update dashboard if on dashboard page
-            const walletAddress = document.getElementById('walletAddress');
-            if (walletAddress) {
-                walletAddress.textContent = `Connected: ${address}`;
-                const networkInfo = document.getElementById('networkInfo');
-                if (networkInfo) {
-                    const network = await provider.getNetwork();
-                    networkInfo.textContent = `Network: ${network.name}`;
-                }
-            }
-
             return address;
         } catch (error) {
             console.error('Authentication error:', error);
@@ -114,29 +144,6 @@ async function connectWallet() {
     } catch (error) {
         console.error('Wallet connection error:', error);
         isConnected = false;
-        throw error;
-    }
-}
-
-async function registerUser(address, email) {
-    try {
-        const response = await fetch('/auth/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ address, email }),
-            credentials: 'include',
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to register user');
-        }
-        
-        const data = await response.json();
-        return data.user;
-    } catch (error) {
-        console.error('Error registering user:', error);
         throw error;
     }
 }
@@ -164,16 +171,6 @@ async function disconnectWallet() {
     const dropdown = document.querySelector('.dropdown-content');
     if (dropdown) {
         dropdown.classList.remove('show');
-    }
-
-    // Update dashboard if on dashboard page
-    const walletAddress = document.getElementById('walletAddress');
-    if (walletAddress) {
-        walletAddress.textContent = 'Not connected';
-        const networkInfo = document.getElementById('networkInfo');
-        if (networkInfo) {
-            networkInfo.textContent = 'Please connect your wallet';
-        }
     }
 }
 
@@ -230,7 +227,10 @@ window.onclick = function(event) {
 }
 
 // Update the event listeners
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Check session status on page load - only once
+    await checkConnection();
+
     const connectButton = document.getElementById('connectWallet');
     if (connectButton) {
         connectButton.addEventListener('click', async (e) => {
@@ -248,19 +248,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listen for account changes
     if (window.ethereum) {
-        window.ethereum.on('accountsChanged', function (accounts) {
+        window.ethereum.on('accountsChanged', async function (accounts) {
             if (accounts.length === 0) {
-                disconnectWallet();
-            } else if (isConnected) {
-                // Only reconnect if we were previously connected
-                connectWallet();
+                // User disconnected their wallet
+                await disconnectWallet();
+            } else {
+                // User switched accounts, re-authenticate
+                isConnected = false;
+                currentAddress = null;
+                await connectWallet();
             }
         });
 
-        window.ethereum.on('chainChanged', function (chainId) {
-            if (isConnected) {
-                window.location.reload();
-            }
+        // Listen for chain changes
+        window.ethereum.on('chainChanged', async function() {
+            // Handle chain change by re-authenticating
+            isConnected = false;
+            currentAddress = null;
+            await connectWallet();
         });
     }
 }); 

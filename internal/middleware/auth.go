@@ -19,7 +19,7 @@ func NewAuthMiddleware(authService ports.AuthService) *AuthMiddleware {
 func (m *AuthMiddleware) Authenticate() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// Get token from cookie
-		token := c.Cookies("jwt")
+		token := c.Cookies("session")
 		if token == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Not authenticated",
@@ -31,7 +31,7 @@ func (m *AuthMiddleware) Authenticate() fiber.Handler {
 		if err != nil {
 			// Clear invalid cookie
 			c.Cookie(&fiber.Cookie{
-				Name:     "jwt",
+				Name:     "session",
 				Value:    "",
 				Path:     "/",
 				MaxAge:   -1,

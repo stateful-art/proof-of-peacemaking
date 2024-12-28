@@ -5,8 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"proofofpeacemaking/api/routes"
+	"proofofpeacemaking/internal/core/ports"
 	"proofofpeacemaking/internal/core/services"
 	"proofofpeacemaking/internal/handlers"
 	"proofofpeacemaking/internal/repositories/mongodb"
@@ -14,7 +16,36 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html/v2"
 	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/mongo"
 )
+
+func initServices(db *mongo.Database) (
+	ports.NotificationService,
+	ports.AuthService,
+	ports.ExpressionService,
+	ports.AcknowledgementService,
+	ports.ProofNFTService,
+	ports.FeedService,
+	ports.UserService,
+) {
+	// Initialize repositories
+	userRepo := mongodb.NewUserRepository(db)
+	expressionRepo := mongodb.NewExpressionRepository(db)
+	acknowledgementRepo := mongodb.NewAcknowledgementRepository(db)
+	sessionRepo := mongodb.NewSessionRepository(db)
+	notificationRepo := mongodb.NewNotificationRepository(db)
+
+	// Initialize services
+	userService := services.NewUserService(userRepo)
+	expressionService := services.NewExpressionService(expressionRepo)
+	acknowledgementService := services.NewAcknowledgementService(acknowledgementRepo)
+	authService := services.NewAuthService(userService, sessionRepo)
+	notificationService := services.NewNotificationService(notificationRepo, userRepo)
+	proofNFTService := services.NewProofNFTService(userRepo)
+	feedService := services.NewFeedService(expressionService, userService)
+
+	return notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService
+}
 
 func getProjectRoot() string {
 	_, filename, _, _ := runtime.Caller(0)
@@ -25,16 +56,8 @@ func setupHandlers(app *fiber.App) *handlers.Handlers {
 	// Setup MongoDB connection
 	db := mongodb.Connect()
 
-	// Setup repositories
-	notificationRepo := mongodb.NewNotificationRepository(db)
-	userRepo := mongodb.NewUserRepository(db)
-
-	// Setup services
-	notificationService := services.NewNotificationService(notificationRepo, userRepo)
-	authService := services.NewAuthService(userRepo)
-	expressionService := services.NewExpressionService(userRepo)
-	acknowledgementService := services.NewAcknowledgementService(userRepo)
-	proofNFTService := services.NewProofNFTService(userRepo)
+	// Initialize services
+	notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService := initServices(db)
 
 	// Create handlers
 	h := handlers.NewHandlers(
@@ -43,6 +66,8 @@ func setupHandlers(app *fiber.App) *handlers.Handlers {
 		expressionService,
 		acknowledgementService,
 		proofNFTService,
+		feedService,
+		userService,
 	)
 
 	// Setup routes
@@ -62,7 +87,14 @@ func main() {
 
 	// Setup template engine
 	engine := html.New(filepath.Join(projectRoot, "web/templates"), ".html")
-	engine.Reload(true) // Enable this for development
+	engine.Reload(true)     // Enable this for development
+	engine.Layout("layout") // Set the default layout template
+	engine.Debug(true)      // Enable debug mode for development
+
+	// Add template functions
+	engine.AddFunc("formatDate", func(date time.Time) string {
+		return date.Format("Jan 02, 2006")
+	})
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{

@@ -1,18 +1,23 @@
 package handlers
 
 import (
+	"proofofpeacemaking/internal/core/domain"
 	"proofofpeacemaking/internal/core/ports"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type AcknowledgementHandler struct {
 	acknowledgementService ports.AcknowledgementService
+	userService            ports.UserService
 }
 
-func NewAcknowledgementHandler(acknowledgementService ports.AcknowledgementService) *AcknowledgementHandler {
+func NewAcknowledgementHandler(acknowledgementService ports.AcknowledgementService, userService ports.UserService) *AcknowledgementHandler {
 	return &AcknowledgementHandler{
 		acknowledgementService: acknowledgementService,
+		userService:            userService,
 	}
 }
 
@@ -29,8 +34,35 @@ func (h *AcknowledgementHandler) Create(c *fiber.Ctx) error {
 	}
 
 	userAddress := c.Locals("userAddress").(string)
-	acknowledgement, err := h.acknowledgementService.Create(c.Context(), userAddress, body.ExpressionID, body.Content)
+
+	// Get user from address
+	user, err := h.userService.GetUserByAddress(c.Context(), userAddress)
 	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to get user",
+		})
+	}
+
+	// Convert expression ID to ObjectID
+	expressionID, err := primitive.ObjectIDFromHex(body.ExpressionID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid expression ID",
+		})
+	}
+
+	// Create acknowledgement domain object
+	acknowledgement := &domain.Acknowledgement{
+		ExpressionID: expressionID,
+		Acknowledger: user.ID,
+		Content:      body.Content,
+		Status:       "pending",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	// Call service to create acknowledgement
+	if err := h.acknowledgementService.Create(c.Context(), acknowledgement); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create acknowledgement",
 		})

@@ -3,11 +3,13 @@ package handlers
 import "proofofpeacemaking/internal/core/ports"
 
 type Handlers struct {
-	Auth            *AuthHandler
 	Notification    *NotificationHandler
+	Auth            *AuthHandler
 	Expression      *ExpressionHandler
 	Acknowledgement *AcknowledgementHandler
 	ProofNFT        *ProofNFTHandler
+	Feed            *FeedHandler
+	Dashboard       *DashboardHandler
 }
 
 func NewHandlers(
@@ -16,12 +18,16 @@ func NewHandlers(
 	expressionService ports.ExpressionService,
 	acknowledgementService ports.AcknowledgementService,
 	proofNFTService ports.ProofNFTService,
+	feedService ports.FeedService,
+	userService ports.UserService,
 ) *Handlers {
 	return &Handlers{
-		Auth:            NewAuthHandler(authService),
 		Notification:    NewNotificationHandler(notificationService),
-		Expression:      NewExpressionHandler(expressionService),
-		Acknowledgement: NewAcknowledgementHandler(acknowledgementService),
+		Auth:            NewAuthHandler(authService),
+		Expression:      NewExpressionHandler(expressionService, userService),
+		Acknowledgement: NewAcknowledgementHandler(acknowledgementService, userService),
 		ProofNFT:        NewProofNFTHandler(proofNFTService),
+		Feed:            NewFeedHandler(feedService),
+		Dashboard:       NewDashboardHandler(expressionService, acknowledgementService, userService),
 	}
 }

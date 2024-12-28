@@ -57,21 +57,28 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	// Create middleware using auth service from handlers
 	authMiddleware := middleware.NewAuthMiddleware(h.Auth.GetAuthService())
 
-	// Home page
+	// Home page (public)
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("index", fiber.Map{
 			"Title": "Proof of Peacemaking",
 		})
 	})
 
-	// Public routes
+	// Public auth routes
 	app.Get("/auth/nonce", h.Auth.GenerateNonce)
+	app.Get("/auth/session", h.Auth.GetSession)
 	app.Post("/auth/verify", h.Auth.VerifySignature)
 	app.Post("/auth/register", h.Auth.Register)
 	app.Post("/auth/logout", h.Auth.Logout)
 
 	// Protected routes
 	api := app.Group("/api", authMiddleware.Authenticate())
+
+	// Feed page (protected)
+	app.Get("/feed", authMiddleware.Authenticate(), h.Feed.GetFeed)
+
+	// Dashboard page (protected)
+	app.Get("/dashboard", authMiddleware.Authenticate(), h.Dashboard.GetDashboard)
 
 	// Notification routes
 	notifications := api.Group("/notifications")
