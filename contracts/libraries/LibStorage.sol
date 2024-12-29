@@ -26,6 +26,9 @@ library LibStorage {
         string message;
         MediaContent content;
         string ipfsHash;
+        uint256 expressionId;
+        address expressionCreator;
+        uint256 acknowledgementId;
     }
 
     struct NFTMetadata {
