@@ -15,6 +15,8 @@ const (
 	NotificationNFTMinted                NotificationType = "NFT_MINTED"
 	NotificationExpressionConfirmed      NotificationType = "EXPRESSION_CONFIRMED"
 	NotificationAcknowledgementConfirmed NotificationType = "ACKNOWLEDGEMENT_CONFIRMED"
+	NotificationProofRequestAccepted     NotificationType = "PROOF_REQUEST_ACCEPTED"
+	NotificationProofRequestRejected     NotificationType = "PROOF_REQUEST_REJECTED"
 )
 
 type Notification struct {

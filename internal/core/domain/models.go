@@ -31,12 +31,21 @@ type Acknowledgement struct {
 
 type ProofRequest struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty"`
-	Expression   primitive.ObjectID `bson:"expressionId"`
-	Acknowledger primitive.ObjectID `bson:"acknowledgerId"`
-	Status       string             `bson:"status"`
+	ExpressionID string             `bson:"expressionId"`
+	InitiatorID  string             `bson:"initiatorId"`
+	PeerID       string             `bson:"peerId"`
+	Status       ProofRequestStatus `bson:"status"`
 	CreatedAt    time.Time          `bson:"createdAt"`
 	UpdatedAt    time.Time          `bson:"updatedAt"`
 }
+
+type ProofRequestStatus string
+
+const (
+	ProofRequestPending  ProofRequestStatus = "PENDING"
+	ProofRequestAccepted ProofRequestStatus = "ACCEPTED"
+	ProofRequestRejected ProofRequestStatus = "REJECTED"
+)
 
 type ProofNFT struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty"`
