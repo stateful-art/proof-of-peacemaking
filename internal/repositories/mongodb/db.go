@@ -39,16 +39,28 @@ func Connect() *mongo.Database {
 }
 
 func createIndexes(ctx context.Context, db *mongo.Database) error {
-	// Create unique index on user address
-	_, err := db.Collection("users").Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys: map[string]interface{}{
-			"address": 1,
+	configs := []IndexConfig{
+		{
+			Collection: "users",
+			Fields: []IndexField{
+				{Name: "address", Order: 1, Unique: true},
+			},
 		},
-		Options: options.Index().SetUnique(true),
-	})
-	if err != nil {
-		return err
+		{
+			Collection: "expressions",
+			Fields: []IndexField{
+				{Name: "creator", Order: 1},
+				{Name: "createdAt", Order: -1},
+			},
+		},
+		{
+			Collection: "acknowledgements",
+			Fields: []IndexField{
+				{Name: "expressionId", Order: 1, Compound: true},
+				{Name: "acknowledger", Order: 1, Compound: true},
+			},
+		},
 	}
-	log.Printf("[DB] Created unique index on users.address")
-	return nil
+
+	return EnsureIndexes(ctx, db, configs)
 }
