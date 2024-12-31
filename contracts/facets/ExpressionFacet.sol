@@ -6,8 +6,6 @@ import "../libraries/LibStorage.sol";
 import "../libraries/LibPermissions.sol";
 
 contract ExpressionFacet {
-    using LibStorage for LibStorage.AppStorage;
-
     event ExpressionCreated(
         uint256 indexed expressionId,
         address indexed creator,
@@ -24,15 +22,16 @@ contract ExpressionFacet {
         string memory _videoContent,
         string memory _imageContent
     ) external payable returns (uint256) {
-        LibStorage.AppStorage storage s = LibStorage.appStorage();
+        LibStorage.ExpressionStorage storage es = LibStorage.expressionStorage();
+        LibStorage.GasCostStorage storage gs = LibStorage.gasCostStorage();
         
         // Check if user needs to pay gas
         if (!LibPermissions.isSubsidized(msg.sender, LibPermissions.EXPRESSION_PERMISSION)) {
-            require(msg.value >= s.expressionGasCost, "Insufficient gas payment");
+            require(msg.value >= gs.expressionGasCost, "Insufficient gas payment");
         }
 
-        uint256 expressionId = s.expressionCount++;
-        LibStorage.Expression storage expression = s.expressions[expressionId];
+        uint256 expressionId = es.expressionCount++;
+        LibStorage.Expression storage expression = es.expressions[expressionId];
         
         expression.creator = msg.sender;
         expression.timestamp = block.timestamp;
@@ -63,9 +62,9 @@ contract ExpressionFacet {
         address[] memory acknowledgersList,
         string memory ipfsHash
     ) {
-        LibStorage.AppStorage storage s = LibStorage.getStorage();
-        require(_expressionId < s.expressionCount, "Expression does not exist");
-        LibStorage.Expression storage expression = s.expressions[_expressionId];
+        LibStorage.ExpressionStorage storage es = LibStorage.expressionStorage();
+        require(_expressionId < es.expressionCount, "Expression does not exist");
+        LibStorage.Expression storage expression = es.expressions[_expressionId];
         
         return (
             expression.creator,
@@ -77,12 +76,12 @@ contract ExpressionFacet {
     }
 
     function getExpressionsByCreator(address _creator) external view returns (uint256[] memory) {
-        LibStorage.AppStorage storage s = LibStorage.getStorage();
-        uint256[] memory result = new uint256[](s.expressionCount);
+        LibStorage.ExpressionStorage storage es = LibStorage.expressionStorage();
+        uint256[] memory result = new uint256[](es.expressionCount);
         uint256 count = 0;
         
-        for (uint256 i = 0; i < s.expressionCount; i++) {
-            if (s.expressions[i].creator == _creator) {
+        for (uint256 i = 0; i < es.expressionCount; i++) {
+            if (es.expressions[i].creator == _creator) {
                 result[count] = i;
                 count++;
             }
@@ -95,6 +94,4 @@ contract ExpressionFacet {
         
         return result;
     }
-
-    // Add other expression functions...
 } 

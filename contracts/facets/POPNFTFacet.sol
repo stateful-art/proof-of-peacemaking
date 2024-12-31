@@ -19,6 +19,9 @@ contract POPNFTFacet is IERC721, IERC721Metadata {
         string uri
     );
 
+    event Paused(address account);
+    event Unpaused(address account);
+
     error ReentrantCall();
 
     function name() external pure override returns (string memory) {
@@ -31,19 +34,19 @@ contract POPNFTFacet is IERC721, IERC721Metadata {
 
     function tokenURI(uint256 tokenId) external view override returns (string memory) {
         require(_exists(tokenId), "POPNFTFacet: URI query for nonexistent token");
-        LibPOPNFT.POPNFTStorage storage s = LibPOPNFT.getPOPNFTStorage();
-        return s.tokenURIs[tokenId];
+        LibPOPNFT.POPNFTStorage storage ps = LibPOPNFT.popnftStorage();
+        return ps.tokenURIs[tokenId];
     }
 
     function balanceOf(address owner) external view override returns (uint256) {
         require(owner != address(0), "POPNFTFacet: balance query for zero address");
-        LibPOPNFT.POPNFTStorage storage s = LibPOPNFT.getPOPNFTStorage();
-        return s.balances[owner];
+        LibPOPNFT.POPNFTStorage storage ps = LibPOPNFT.popnftStorage();
+        return ps.balances[owner];
     }
 
     function ownerOf(uint256 tokenId) external view override returns (address) {
-        LibPOPNFT.POPNFTStorage storage s = LibPOPNFT.getPOPNFTStorage();
-        address owner = s.owners[tokenId];
+        LibPOPNFT.POPNFTStorage storage ps = LibPOPNFT.popnftStorage();
+        address owner = ps.owners[tokenId];
         require(owner != address(0), "POPNFTFacet: owner query for nonexistent token");
         return owner;
     }
@@ -58,26 +61,27 @@ contract POPNFTFacet is IERC721, IERC721Metadata {
         require(bytes(uri).length > 0, "POPNFTFacet: URI cannot be empty");
         require(to != address(this), "POPNFTFacet: Cannot mint to contract itself");
         
-        LibPOPNFT.POPNFTStorage storage s = LibPOPNFT.getPOPNFTStorage();
-        require(!s.paused, "POPNFTFacet: Contract is paused");
-        require(s.balances[to] == 0, "POPNFTFacet: Address already has a POPNFT");
+        LibPOPNFT.POPNFTStorage storage ps = LibPOPNFT.popnftStorage();
+        LibStorage.NFTMetadataStorage storage ns = LibStorage.nftMetadataStorage();
         
-        if (!s._notEntered) revert ReentrantCall();
-        s._notEntered = false;
+        require(!ps.paused, "POPNFTFacet: Contract is paused");
+        require(ps.balances[to] == 0, "POPNFTFacet: Address already has a POPNFT");
+        
+        if (!ps._notEntered) revert ReentrantCall();
+        ps._notEntered = false;
         
         LibDiamond.enforceIsContractOwner();
         
-        uint256 tokenId = s.tokenIdCounter.current();
-        s.tokenIdCounter.increment();
+        uint256 tokenId = ps.tokenIdCounter.current();
+        ps.tokenIdCounter.increment();
         
         _mint(to, tokenId);
-        s.tokenURIs[tokenId] = uri;
-        s.tokenToExpressionId[tokenId] = expressionId;
-        s.hasValidPOP[to] = true;
+        ps.tokenURIs[tokenId] = uri;
+        ps.tokenToExpressionId[tokenId] = expressionId;
+        ps.hasValidPOP[to] = true;
         
-        // Store metadata in AppStorage
-        LibStorage.AppStorage storage appStorage = LibStorage.getStorage();
-        appStorage.tokenMetadata[tokenId] = LibStorage.NFTMetadata({
+        // Store metadata in NFTMetadataStorage
+        ns.tokenMetadata[tokenId] = LibStorage.NFTMetadata({
             creator: expressionCreator,
             acknowledger: to,
             expressionId: expressionId,
@@ -90,23 +94,23 @@ contract POPNFTFacet is IERC721, IERC721Metadata {
         // Event emission with acknowledgementId
         emit POPNFTMinted(to, tokenId, expressionId, acknowledgementId, uri);
         
-        s._notEntered = true;
+        ps._notEntered = true;
     }
 
     function _mint(address to, uint256 tokenId) internal {
         require(to != address(0), "POPNFTFacet: mint to zero address");
         require(!_exists(tokenId), "POPNFTFacet: token already minted");
 
-        LibPOPNFT.POPNFTStorage storage s = LibPOPNFT.getPOPNFTStorage();
-        s.balances[to] += 1;
-        s.owners[tokenId] = to;
+        LibPOPNFT.POPNFTStorage storage ps = LibPOPNFT.popnftStorage();
+        ps.balances[to] += 1;
+        ps.owners[tokenId] = to;
 
         emit Transfer(address(0), to, tokenId);
     }
 
     function _exists(uint256 tokenId) internal view returns (bool) {
-        LibPOPNFT.POPNFTStorage storage s = LibPOPNFT.getPOPNFTStorage();
-        return s.owners[tokenId] != address(0);
+        LibPOPNFT.POPNFTStorage storage ps = LibPOPNFT.popnftStorage();
+        return ps.owners[tokenId] != address(0);
     }
 
     // Required IERC721 functions
@@ -141,11 +145,11 @@ contract POPNFTFacet is IERC721, IERC721Metadata {
 
     function initializePOPNFT() external {
         LibDiamond.enforceIsContractOwner();
-        LibPOPNFT.POPNFTStorage storage s = LibPOPNFT.getPOPNFTStorage();
-        require(!s.initialized, "POPNFTFacet: Already initialized");
+        LibPOPNFT.POPNFTStorage storage ps = LibPOPNFT.popnftStorage();
+        require(!ps.initialized, "POPNFTFacet: Already initialized");
         
-        s.initialized = true;
-        s._notEntered = true;
+        ps.initialized = true;
+        ps._notEntered = true;
     }
 
     function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
@@ -156,32 +160,32 @@ contract POPNFTFacet is IERC721, IERC721Metadata {
 
     function pause() external {
         LibDiamond.enforceIsContractOwner();
-        LibPOPNFT.POPNFTStorage storage s = LibPOPNFT.getPOPNFTStorage();
-        s.paused = true;
+        LibPOPNFT.POPNFTStorage storage ps = LibPOPNFT.popnftStorage();
+        ps.paused = true;
         emit Paused(msg.sender);
     }
 
     function unpause() external {
         LibDiamond.enforceIsContractOwner();
-        LibPOPNFT.POPNFTStorage storage s = LibPOPNFT.getPOPNFTStorage();
-        s.paused = false;
+        LibPOPNFT.POPNFTStorage storage ps = LibPOPNFT.popnftStorage();
+        ps.paused = false;
         emit Unpaused(msg.sender);
     }
 
     function getExpressionId(uint256 tokenId) external view returns (uint256) {
         require(_exists(tokenId), "POPNFTFacet: Query for nonexistent token");
-        LibPOPNFT.POPNFTStorage storage s = LibPOPNFT.getPOPNFTStorage();
-        return s.tokenToExpressionId[tokenId];
+        LibPOPNFT.POPNFTStorage storage ps = LibPOPNFT.popnftStorage();
+        return ps.tokenToExpressionId[tokenId];
     }
 
     function getAcknowledgements(uint256 tokenId) external view returns (LibStorage.Acknowledgement[] memory) {
         require(_exists(tokenId), "POPNFTFacet: Query for nonexistent token");
-        LibPOPNFT.POPNFTStorage storage s = LibPOPNFT.getPOPNFTStorage();
-        return s.tokenToAcknowledgements[tokenId];
+        LibPOPNFT.POPNFTStorage storage ps = LibPOPNFT.popnftStorage();
+        return ps.tokenToAcknowledgements[tokenId];
     }
 
     function hasValidPOP(address account) external view returns (bool) {
-        LibPOPNFT.POPNFTStorage storage s = LibPOPNFT.getPOPNFTStorage();
-        return s.hasValidPOP[account];
+        LibPOPNFT.POPNFTStorage storage ps = LibPOPNFT.popnftStorage();
+        return ps.hasValidPOP[account];
     }
 } 
