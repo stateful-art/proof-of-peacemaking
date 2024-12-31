@@ -7,7 +7,7 @@ import "./LibStorage.sol";
 library LibPOPNFT {
     using Counters for Counters.Counter;
 
-    bytes32 constant POPNFT_STORAGE_POSITION = keccak256("pop.standard.popnft.storage");
+    bytes32 constant POPNFT_STORAGE_POSITION = keccak256("pop.v1.nft.core.storage");
 
     struct POPNFTStorage {
         // Token name and symbol (immutable)

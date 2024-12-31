@@ -7,10 +7,10 @@ pragma solidity ^0.8.20;
 // therefore preventing different facets with different state variables from clashing storage locations.
 library LibStorage {
     // Storage namespace positions
-    bytes32 constant EXPRESSION_STORAGE_POSITION = keccak256("pop.standard.expression.storage");
-    bytes32 constant ACKNOWLEDGEMENT_STORAGE_POSITION = keccak256("pop.standard.acknowledgement.storage");
-    bytes32 constant NFT_METADATA_STORAGE_POSITION = keccak256("pop.standard.nft.metadata.storage");
-    bytes32 constant GAS_COST_STORAGE_POSITION = keccak256("pop.standard.gas.cost.storage");
+    bytes32 constant EXPRESSION_STORAGE_POSITION = keccak256("pop.v1.expression.storage");
+    bytes32 constant ACKNOWLEDGEMENT_STORAGE_POSITION = keccak256("pop.v1.acknowledgement.storage");
+    bytes32 constant NFT_METADATA_STORAGE_POSITION = keccak256("pop.v1.nft.metadata.storage");
+    bytes32 constant GAS_COST_STORAGE_POSITION = keccak256("pop.v1.gas.cost.storage");
 
     // Helper structs (no storage position needed)
     struct MediaContent {
