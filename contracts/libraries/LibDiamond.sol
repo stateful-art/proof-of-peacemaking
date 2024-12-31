@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 library LibDiamond {
-    bytes32 constant DIAMOND_STORAGE_POSITION = keccak256("diamond.standard.diamond.storage");
+    bytes32 constant DIAMOND_STORAGE_POSITION = keccak256("pop.v1.diamond.storage");
 
     struct FacetAddressAndPosition {
         address facetAddress;

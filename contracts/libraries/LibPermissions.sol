@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 library LibPermissions {
-    bytes32 constant STORAGE_POSITION = keccak256("permissions.storage");
+    bytes32 constant STORAGE_POSITION = keccak256("pop.v1.permissions.storage");
     
     uint8 constant EXPRESSION_PERMISSION = 1;
     uint8 constant ACKNOWLEDGEMENT_PERMISSION = 2;
