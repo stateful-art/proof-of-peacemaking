@@ -5,7 +5,10 @@ import (
 	"proofofpeacemaking/internal/core/ports"
 	"time"
 
+	"log"
+
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ExpressionHandler struct {
@@ -21,33 +24,90 @@ func NewExpressionHandler(expressionService ports.ExpressionService, userService
 }
 
 func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
-	var body struct {
-		Content map[string]string `json:"content"` // text, audio, video, image
-	}
-
-	if err := c.BodyParser(&body); err != nil {
+	// Parse multipart form
+	form, err := c.MultipartForm()
+	if err != nil {
+		log.Printf("[EXPRESSION] Error parsing form: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
+			"error": "Invalid form data",
 		})
 	}
 
+	// Get user from context
 	userAddress := c.Locals("userAddress").(string)
+	log.Printf("[EXPRESSION] Looking up user with address: %s", userAddress)
 
-	// Get user from address
 	user, err := h.userService.GetUserByAddress(c.Context(), userAddress)
 	if err != nil {
+		log.Printf("[EXPRESSION] Error getting user: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to get user",
 		})
 	}
+	if user == nil {
+		log.Printf("[EXPRESSION] User not found for address: %s", userAddress)
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "User not found",
+		})
+	}
+	log.Printf("[EXPRESSION] Found user with ID: %s", user.ID.Hex())
+
+	// Initialize content map
+	content := make(map[string]string)
+
+	// Handle text content
+	if textContent := form.Value["textContent"]; len(textContent) > 0 {
+		content["text"] = textContent[0]
+	}
+
+	// Handle image file
+	if imageFiles := form.File["imageContent"]; len(imageFiles) > 0 {
+		// Save image file
+		imageFile := imageFiles[0]
+		filename := "uploads/images/" + imageFile.Filename
+		if err := c.SaveFile(imageFile, filename); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to save image",
+			})
+		}
+		content["image"] = filename
+	}
+
+	// Handle audio file
+	if audioFiles := form.File["audioContent"]; len(audioFiles) > 0 {
+		// Save audio file
+		audioFile := audioFiles[0]
+		filename := "uploads/audio/" + audioFile.Filename
+		if err := c.SaveFile(audioFile, filename); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to save audio",
+			})
+		}
+		content["audio"] = filename
+	}
+
+	// Handle video file
+	if videoFiles := form.File["videoContent"]; len(videoFiles) > 0 {
+		// Save video file
+		videoFile := videoFiles[0]
+		filename := "uploads/video/" + videoFile.Filename
+		if err := c.SaveFile(videoFile, filename); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to save video",
+			})
+		}
+		content["video"] = filename
+	}
 
 	// Create expression domain object
 	expression := &domain.Expression{
-		Creator:   user.ID,
-		Content:   body.Content,
-		Status:    "pending",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:             primitive.NewObjectID(),
+		Creator:        user.ID,
+		CreatorAddress: user.Address,
+		Content:        content,
+		Status:         "pending",
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 	}
 
 	// Call service to create expression

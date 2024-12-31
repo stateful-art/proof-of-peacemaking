@@ -7,6 +7,7 @@ import (
 	"proofofpeacemaking/internal/core/ports"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -29,8 +30,16 @@ func (r *expressionRepository) Create(ctx context.Context, expression *domain.Ex
 }
 
 func (r *expressionRepository) FindByID(ctx context.Context, id string) (*domain.Expression, error) {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid expression ID format: %w", err)
+	}
+
 	var expression domain.Expression
-	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&expression)
+	err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&expression)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to find expression: %w", err)
 	}

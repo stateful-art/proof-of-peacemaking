@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"log"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -37,6 +39,8 @@ func generateSecureToken() (string, error) {
 }
 
 func (s *authService) GenerateNonce(ctx context.Context, address string) (int, error) {
+	log.Printf("[AUTH] Generating nonce for address: %s", address)
+
 	// Generate random nonce
 	max := big.NewInt(1000000)
 	n, err := rand.Int(rand.Reader, max)
@@ -48,10 +52,12 @@ func (s *authService) GenerateNonce(ctx context.Context, address string) (int, e
 	// Find or create user
 	user, err := s.userService.GetUserByAddress(ctx, address)
 	if err != nil {
+		log.Printf("[AUTH] Error finding user: %v", err)
 		return 0, fmt.Errorf("failed to find user: %w", err)
 	}
 
 	if user == nil {
+		log.Printf("[AUTH] Creating new user for address: %s", address)
 		// Create new user if not exists
 		user = &domain.User{
 			ID:        primitive.NewObjectID(),
@@ -60,27 +66,38 @@ func (s *authService) GenerateNonce(ctx context.Context, address string) (int, e
 			UpdatedAt: time.Now(),
 		}
 		if err := s.userService.Create(ctx, user); err != nil {
+			log.Printf("[AUTH] Error creating user: %v", err)
 			return 0, fmt.Errorf("failed to create user: %w", err)
 		}
+		log.Printf("[AUTH] Created new user with ID: %s", user.ID.Hex())
+	} else {
+		log.Printf("[AUTH] Found existing user with ID: %s", user.ID.Hex())
 	}
 
 	// Update user's nonce
 	if err := s.userService.UpdateNonce(ctx, user.ID, nonce); err != nil {
+		log.Printf("[AUTH] Error updating nonce: %v", err)
 		return 0, fmt.Errorf("failed to update nonce: %w", err)
 	}
+	log.Printf("[AUTH] Updated nonce to %d for user %s", nonce, user.ID.Hex())
 
 	return nonce, nil
 }
 
 func (s *authService) VerifySignature(ctx context.Context, address string, signature string) (bool, string, error) {
+	log.Printf("[AUTH] Verifying signature for address: %s", address)
+
 	// Get user and their nonce
 	user, err := s.userService.GetUserByAddress(ctx, address)
 	if err != nil {
+		log.Printf("[AUTH] Error finding user: %v", err)
 		return false, "", fmt.Errorf("failed to find user: %w", err)
 	}
 	if user == nil {
+		log.Printf("[AUTH] User not found for address: %s", address)
 		return false, "", fmt.Errorf("user not found")
 	}
+	log.Printf("[AUTH] Found user with ID: %s", user.ID.Hex())
 
 	// Create the message that was signed
 	message := fmt.Sprintf("Sign this message to verify your wallet. Nonce: %d", user.Nonce)

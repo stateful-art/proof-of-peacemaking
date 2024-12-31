@@ -108,6 +108,15 @@ func main() {
 
 	// Setup static files
 	app.Static("/static", filepath.Join(projectRoot, "web/static"))
+	app.Static("/uploads", filepath.Join(projectRoot, "uploads"))
+
+	// Create uploads directories if they don't exist
+	uploadsPath := filepath.Join(projectRoot, "uploads")
+	for _, dir := range []string{"images", "audio", "video"} {
+		if err := os.MkdirAll(filepath.Join(uploadsPath, dir), 0755); err != nil {
+			log.Printf("Warning: Failed to create uploads directory %s: %v", dir, err)
+		}
+	}
 
 	// Setup handlers and routes
 	setupHandlers(app)

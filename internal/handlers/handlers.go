@@ -25,7 +25,7 @@ func NewHandlers(
 		Notification:    NewNotificationHandler(notificationService),
 		Auth:            NewAuthHandler(authService),
 		Expression:      NewExpressionHandler(expressionService, userService),
-		Acknowledgement: NewAcknowledgementHandler(acknowledgementService, userService),
+		Acknowledgement: NewAcknowledgementHandler(acknowledgementService, userService, expressionService),
 		ProofNFT:        NewProofNFTHandler(proofNFTService),
 		Feed:            NewFeedHandler(feedService),
 		Dashboard:       NewDashboardHandler(expressionService, acknowledgementService, userService, proofNFTService),
