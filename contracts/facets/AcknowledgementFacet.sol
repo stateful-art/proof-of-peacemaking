@@ -6,8 +6,6 @@ import "../libraries/LibStorage.sol";
 import "../libraries/LibPermissions.sol";
 
 contract AcknowledgementFacet {
-    using LibStorage for LibStorage.AppStorage;
-
     event AcknowledgementCreated(
         uint256 indexed expressionId,
         address indexed acknowledger,
@@ -25,7 +23,7 @@ contract AcknowledgementFacet {
         string imageContent
     );
 
-    function createAcknowledgement(
+    function acknowledge(
         uint256 _expressionId,
         address _creator,
         string memory _message,
@@ -33,19 +31,18 @@ contract AcknowledgementFacet {
         string memory _audioContent,
         string memory _videoContent,
         string memory _imageContent
-    ) external payable{
-        LibStorage.AppStorage storage s = LibStorage.appStorage();
-        
+    ) external payable {
+        LibStorage.ExpressionStorage storage es = LibStorage.expressionStorage();
+        LibStorage.GasCostStorage storage gs = LibStorage.gasCostStorage();
+
+        require(_expressionId < es.expressionCount, "Expression does not exist");
+        LibStorage.Expression storage expression = es.expressions[_expressionId];
+        require(expression.creator == _creator, "Invalid creator address");
+
         // Check if user needs to pay gas
         if (!LibPermissions.isSubsidized(msg.sender, LibPermissions.ACKNOWLEDGEMENT_PERMISSION)) {
-            require(msg.value >= s.acknowledgementGasCost, "Insufficient gas payment");
+            require(msg.value >= gs.acknowledgementGasCost, "Insufficient gas payment");
         }
-
-        require(_expressionId < s.expressionCount, "Expression does not exist");
-        LibStorage.Expression storage expression = s.expressions[_expressionId];
-        
-        require(!hasAcknowledged(_expressionId, msg.sender), "Already acknowledged");
-        require(msg.sender != _creator, "Cannot acknowledge own expression");
 
         LibStorage.Acknowledgement storage ack = expression.acknowledgments[msg.sender];
         ack.acknowledger = msg.sender;
@@ -79,9 +76,9 @@ contract AcknowledgementFacet {
     }
 
     function hasAcknowledged(uint256 _expressionId, address _acknowledger) public view returns (bool) {
-        LibStorage.AppStorage storage s = LibStorage.appStorage();
-        require(_expressionId < s.expressionCount, "Expression does not exist");
-        return s.expressions[_expressionId].acknowledgments[_acknowledger].acknowledger == _acknowledger;
+        LibStorage.ExpressionStorage storage es = LibStorage.expressionStorage();
+        require(_expressionId < es.expressionCount, "Expression does not exist");
+        return es.expressions[_expressionId].acknowledgments[_acknowledger].acknowledger == _acknowledger;
     }
 
     function getAcknowledgement(
@@ -93,10 +90,10 @@ contract AcknowledgementFacet {
         LibStorage.MediaContent memory content,
         string memory ipfsHash
     ) {
-        LibStorage.AppStorage storage s = LibStorage.appStorage();
-        require(_expressionId < s.expressionCount, "Expression does not exist");
+        LibStorage.ExpressionStorage storage es = LibStorage.expressionStorage();
+        require(_expressionId < es.expressionCount, "Expression does not exist");
         
-        LibStorage.Acknowledgement storage ack = s.expressions[_expressionId].acknowledgments[_acknowledger];
+        LibStorage.Acknowledgement storage ack = es.expressions[_expressionId].acknowledgments[_acknowledger];
         require(ack.acknowledger == _acknowledger, "No acknowledgment from this address");
         
         return (
@@ -108,8 +105,8 @@ contract AcknowledgementFacet {
     }
 
     function getAcknowledgers(uint256 _expressionId) external view returns (address[] memory) {
-        LibStorage.AppStorage storage s = LibStorage.appStorage();
-        require(_expressionId < s.expressionCount, "Expression does not exist");
-        return s.expressions[_expressionId].acknowledgers;
+        LibStorage.ExpressionStorage storage es = LibStorage.expressionStorage();
+        require(_expressionId < es.expressionCount, "Expression does not exist");
+        return es.expressions[_expressionId].acknowledgers;
     }
 } 

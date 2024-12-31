@@ -107,14 +107,14 @@ func (s *notificationService) NotifyNFTMinted(ctx context.Context, nft *domain.P
 	return nil
 }
 
-func (s *notificationService) NotifyProofRequest(ctx context.Context, request *domain.ProofRequest) error {
+func (s *notificationService) NotifyProofRequestReceived(ctx context.Context, request *domain.ProofRequest) error {
 	notification := &domain.Notification{
 		Type:    domain.NotificationProofRequestReceived,
 		Title:   "New Proof Request",
 		Message: "You have received a request to create a proof NFT",
 		Data: map[string]interface{}{
-			"expressionId": request.Expression,
-			"requestedBy":  request.Acknowledger,
+			"expressionId": request.ExpressionID,
+			"requestedBy":  request.InitiatorID,
 		},
 		CreatedAt: request.CreatedAt,
 	}
@@ -123,8 +123,13 @@ func (s *notificationService) NotifyProofRequest(ctx context.Context, request *d
 		return err
 	}
 
+	peerID, err := primitive.ObjectIDFromHex(request.PeerID)
+	if err != nil {
+		return err
+	}
+
 	userNotification := &domain.UserNotification{
-		UserID:         request.Expression, // Notify the expression creator
+		UserID:         peerID,
 		NotificationID: notification.ID,
 		CreatedAt:      notification.CreatedAt,
 	}
@@ -132,4 +137,30 @@ func (s *notificationService) NotifyProofRequest(ctx context.Context, request *d
 	return s.notificationRepo.CreateUserNotification(ctx, userNotification)
 }
 
-// ... implement other notification methods similarly
+func (s *notificationService) NotifyProofRequestAccepted(ctx context.Context, request *domain.ProofRequest) error {
+	notification := &domain.Notification{
+		Type:    domain.NotificationProofRequestAccepted,
+		Title:   "Proof Request Accepted",
+		Message: "Your proof request has been accepted",
+	}
+
+	if err := s.notificationRepo.Create(ctx, notification); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *notificationService) NotifyProofRequestRejected(ctx context.Context, request *domain.ProofRequest) error {
+	notification := &domain.Notification{
+		Type:    domain.NotificationProofRequestRejected,
+		Title:   "Proof Request Rejected",
+		Message: "Your proof request has been rejected",
+	}
+
+	if err := s.notificationRepo.Create(ctx, notification); err != nil {
+		return err
+	}
+
+	return nil
+}

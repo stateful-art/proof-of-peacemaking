@@ -10,7 +10,9 @@ import (
 
 type NotificationService interface {
 	NotifyNewAcknowledgement(ctx context.Context, expression *domain.Expression, acknowledgement *domain.Acknowledgement) error
-	NotifyProofRequest(ctx context.Context, request *domain.ProofRequest) error
+	NotifyProofRequestReceived(ctx context.Context, request *domain.ProofRequest) error
+	NotifyProofRequestAccepted(ctx context.Context, request *domain.ProofRequest) error
+	NotifyProofRequestRejected(ctx context.Context, request *domain.ProofRequest) error
 	NotifyNFTMinted(ctx context.Context, nft *domain.ProofNFT) error
 	GetUserNotifications(ctx context.Context, userAddress string) ([]*domain.Notification, error)
 	MarkNotificationAsRead(ctx context.Context, userAddress string, notificationID string) error

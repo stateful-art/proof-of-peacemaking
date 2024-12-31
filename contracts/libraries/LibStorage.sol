@@ -1,9 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+// LibStorage uses Diamond Storage 
+// ~> https://eip2535diamonds.substack.com/p/keep-your-data-right-in-eip2535-diamonds?open=false#%C2%A7diamond-storage
+// For different facets we can specify different locations to start storing data, 
+// therefore preventing different facets with different state variables from clashing storage locations.
 library LibStorage {
-    bytes32 constant STORAGE_POSITION = keccak256("pop.standard.storage");
+    // Storage namespace positions
+    bytes32 constant EXPRESSION_STORAGE_POSITION = keccak256("pop.standard.expression.storage");
+    bytes32 constant ACKNOWLEDGEMENT_STORAGE_POSITION = keccak256("pop.standard.acknowledgement.storage");
+    bytes32 constant NFT_METADATA_STORAGE_POSITION = keccak256("pop.standard.nft.metadata.storage");
+    bytes32 constant GAS_COST_STORAGE_POSITION = keccak256("pop.standard.gas.cost.storage");
 
+    // Helper structs (no storage position needed)
     struct MediaContent {
         string textContent;
         string audioContent;
@@ -15,8 +24,6 @@ library LibStorage {
         address creator;
         MediaContent content;
         uint256 timestamp;
-        mapping(address => Acknowledgement) acknowledgments;
-        address[] acknowledgers;
         string ipfsHash;
     }
 
@@ -41,32 +48,57 @@ library LibStorage {
         string acknowledgementIPFS;
     }
 
-    struct AppStorage {
-        // Expression storage
+    // Diamond Storage structs (each with its own storage position)
+    struct ExpressionStorage {
         mapping(uint256 => Expression) expressions;
         uint256 expressionCount;
+        // Track acknowledgers per expression
+        mapping(uint256 => address[]) expressionAcknowledgers;
+    }
 
-        // NFT storage
+    struct AcknowledgementStorage {
+        // expressionId => acknowledger => Acknowledgement
+        mapping(uint256 => mapping(address => Acknowledgement)) acknowledgements;
+        uint256 acknowledgementCount;
+    }
+
+    struct NFTMetadataStorage {
         mapping(uint256 => NFTMetadata) tokenMetadata;
         uint256 tokenCount;
+    }
 
-        // Gas costs
+    struct GasCostStorage {
         uint256 expressionGasCost;
         uint256 acknowledgementGasCost;
         uint256 nftMintGasCost;
     }
 
-    function appStorage() internal pure returns (AppStorage storage ds) {
-        bytes32 position = STORAGE_POSITION;
+    // Diamond Storage getters
+    function expressionStorage() internal pure returns (ExpressionStorage storage es) {
+        bytes32 position = EXPRESSION_STORAGE_POSITION;
         assembly {
-            ds.slot := position
+            es.slot := position
         }
     }
 
-    function getStorage() internal pure returns (AppStorage storage s) {
-        bytes32 position = STORAGE_POSITION;
+    function acknowledgementStorage() internal pure returns (AcknowledgementStorage storage s) {
+        bytes32 position = ACKNOWLEDGEMENT_STORAGE_POSITION;
         assembly {
             s.slot := position
+        }
+    }
+
+    function nftMetadataStorage() internal pure returns (NFTMetadataStorage storage ns) {
+        bytes32 position = NFT_METADATA_STORAGE_POSITION;
+        assembly {
+            ns.slot := position
+        }
+    }
+
+    function gasCostStorage() internal pure returns (GasCostStorage storage gs) {
+        bytes32 position = GAS_COST_STORAGE_POSITION;
+        assembly {
+            gs.slot := position
         }
     }
 } 
