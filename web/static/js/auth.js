@@ -16,10 +16,18 @@ async function openAuthModal() {
     }
 
     const modal = document.getElementById('authModal');
+    const authForms = document.getElementById('authForms');
+    const walletSteps = document.getElementById('walletSteps');
+    
     console.log('Auth modal element:', modal); // Debug log
     
     if (modal) {
+        // Reset modal state
+        walletSteps.style.display = 'none';
+        authForms.style.display = 'block';
+        authForms.classList.add('active');
         modal.classList.add('active');
+        
         console.log('Added active class to modal'); // Debug log
         // Show login form by default
         switchAuthMode('login');
@@ -116,53 +124,160 @@ async function handleEmailRegister(event) {
     }
 }
 
-// Wallet connection
-async function connectWallet() {
-    if (typeof window.ethereum === 'undefined') {
-        alert('Please install MetaMask to use this feature');
-        return;
+// Wallet connection steps
+async function startWalletConnection() {
+    // Show wallet steps UI
+    const modal = document.getElementById('authModal');
+    const authForms = document.getElementById('authForms');
+    const walletSteps = document.getElementById('walletSteps');
+    
+    // Show modal if not already shown
+    if (!modal.classList.contains('active')) {
+        modal.classList.add('active');
     }
+    
+    authForms.style.display = 'none';
+    walletSteps.style.display = 'block';
+    walletSteps.classList.add('active');
+
+    // Activate first step
+    const connectStep = document.getElementById('connectStep');
+    const signStep = document.getElementById('signStep');
+    connectStep.classList.add('active');
 
     try {
-        // Request account access
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const address = accounts[0];
+        // Check if MetaMask is installed
+        if (typeof window.ethereum === 'undefined') {
+            updateStepStatus('connectStep', 'error', 'Please install MetaMask to continue');
+            return;
+        }
 
-        // Get nonce
-        const nonceResponse = await fetch('/auth/nonce?address=' + address);
-        const { nonce } = await nonceResponse.json();
+        // Update navbar status
+        const walletBtn = document.getElementById('walletBtn');
+        if (walletBtn) {
+            walletBtn.textContent = 'Connecting...';
+        }
 
-        // Create message to sign - EXACT match with backend
-        const message = `Sign this message to verify your wallet. Nonce: ${nonce}`;
+        try {
+            // Request account access
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const address = accounts[0];
 
-        // Request signature
-        const signature = await window.ethereum.request({
-            method: 'personal_sign',
-            params: [message, address],
-        });
+            // Update UI to show connection success
+            updateStepStatus('connectStep', 'success', 'Wallet connected successfully');
+            
+            // Update navbar status
+            if (walletBtn) {
+                walletBtn.textContent = 'Confirming...';
+            }
 
-        // Verify signature
-        const verifyResponse = await fetch('/auth/verify', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                address,
-                signature
-            }),
-            credentials: 'include'  // Important: include credentials
-        });
+            // Activate sign step
+            signStep.classList.add('active');
+            const signSpinner = signStep.querySelector('.spinner');
+            signSpinner.style.display = 'block';
 
-        if (verifyResponse.ok) {
-            window.location.reload();
-        } else {
-            const data = await verifyResponse.json();
-            alert(data.error || 'Wallet verification failed');
+            // Get nonce
+            const nonceResponse = await fetch('/auth/nonce?address=' + address);
+            const { nonce } = await nonceResponse.json();
+
+            // Create message to sign
+            const message = `Sign this message to verify your wallet. Nonce: ${nonce}`;
+
+            // Request signature
+            const signature = await window.ethereum.request({
+                method: 'personal_sign',
+                params: [message, address],
+            });
+
+            // Verify signature
+            const verifyResponse = await fetch('/auth/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    address,
+                    signature
+                }),
+                credentials: 'include'
+            });
+
+            if (verifyResponse.ok) {
+                // Update UI to show signature success
+                updateStepStatus('signStep', 'success', 'Verification complete');
+                // Reload page after a short delay
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                const data = await verifyResponse.json();
+                if (data.error === 'signature does not match address') {
+                    // If it's just a signature mismatch, retry verification
+                    console.log('Retrying verification...');
+                    const retryResponse = await fetch('/auth/verify', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            address,
+                            signature
+                        }),
+                        credentials: 'include'
+                    });
+                    
+                    if (retryResponse.ok) {
+                        updateStepStatus('signStep', 'success', 'Verification complete');
+                        setTimeout(() => window.location.reload(), 1000);
+                        return;
+                    }
+                }
+                updateStepStatus('signStep', 'error', data.error || 'Verification failed');
+            }
+        } catch (error) {
+            console.error('Wallet connection error:', error);
+            // Reset navbar status
+            if (walletBtn) {
+                walletBtn.textContent = 'Enter';
+            }
+            
+            if (error.code === 4001) {
+                // User rejected request
+                updateStepStatus('connectStep', 'error', 'Connection rejected by user');
+            } else if (error.code === -32002) {
+                // Request already pending
+                updateStepStatus('connectStep', 'error', 'Wallet connection already pending. Please check MetaMask.');
+            } else {
+                // Other errors
+                const activeStep = signStep.classList.contains('active') ? 'signStep' : 'connectStep';
+                updateStepStatus(activeStep, 'error', 'Failed to connect wallet. Please try again.');
+            }
         }
     } catch (error) {
-        console.error('Wallet connection error:', error);
-        alert('Failed to connect wallet. Please try again.');
+        console.error('Outer wallet connection error:', error);
+        // Reset navbar status
+        const walletBtn = document.getElementById('walletBtn');
+        if (walletBtn) {
+            walletBtn.textContent = 'Enter';
+        }
+    }
+}
+
+function updateStepStatus(stepId, status, message) {
+    const step = document.getElementById(stepId);
+    const spinner = step.querySelector('.spinner');
+    const checkIcon = step.querySelector('.check-icon');
+    const messageEl = step.querySelector('p');
+
+    if (status === 'success') {
+        spinner.style.display = 'none';
+        checkIcon.style.display = 'flex';
+        step.classList.add('success');
+    } else if (status === 'error') {
+        spinner.style.display = 'none';
+        messageEl.style.color = 'var(--error-color)';
+    }
+
+    if (message) {
+        messageEl.textContent = message;
     }
 }
 
@@ -200,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Close the auth modal before starting wallet connection
             closeAuthModal();
             // Start wallet connection
-            await connectWallet();
+            await startWalletConnection();
         });
     }
 }); 
