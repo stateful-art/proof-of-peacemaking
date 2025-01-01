@@ -71,6 +71,12 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, userService ports.UserSer
 		}, "")
 	})
 
+	app.Get("/learn", func(c *fiber.Ctx) error {
+		return c.Render("learn", fiber.Map{
+			"Title": "Proof of Peacemaking",
+		}, "")
+	})
+
 	// Public auth routes
 	app.Get("/auth/nonce", h.Auth.GenerateNonce)
 	app.Get("/auth/session", h.Auth.GetSession)
