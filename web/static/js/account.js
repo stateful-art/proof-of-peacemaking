@@ -52,6 +52,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear any error messages
         const errorMessages = profileForm.querySelectorAll('.error-message');
         errorMessages.forEach(msg => msg.remove());
+
+        // If there were no edits being made, navigate back
+        if (!editProfileBtn.style.display || editProfileBtn.style.display === 'block') {
+            handleCancel();
+        }
     });
 
     // Handle form submission
