@@ -1,3 +1,6 @@
+// Make openAuthModal available globally
+window.openAuthModal = openAuthModal;
+
 // Auth Modal Control
 async function openAuthModal() {
     console.log('openAuthModal called'); // Debug log
@@ -35,6 +38,9 @@ async function openAuthModal() {
         console.error('Auth modal element not found!'); // Debug log
     }
 }
+
+// Make closeAuthModal available globally
+window.closeAuthModal = closeAuthModal;
 
 function closeAuthModal() {
     const modal = document.getElementById('authModal');
@@ -316,9 +322,10 @@ function updateStepStatus(stepId, status, message) {
         spinner.style.display = 'none';
         checkIcon.style.display = 'flex';
         step.classList.add('success');
+        messageEl.style.color = '#90EE90'; // Light pistachio green
     } else if (status === 'error') {
         spinner.style.display = 'none';
-        messageEl.style.color = 'var(--error-color)';
+        messageEl.style.color = '#FFFFFF'; // White for error messages
     }
 
     if (message) {
@@ -326,23 +333,75 @@ function updateStepStatus(stepId, status, message) {
     }
 }
 
+// Add at the top of the file
+let isMetaMaskConnected = false;
+
+// Add this new function
+async function handleMetaMaskDisconnect() {
+    console.log('MetaMask disconnected');
+    isMetaMaskConnected = false;
+    // Clear any pending requests
+    if (nonceRequestTimeout) {
+        clearTimeout(nonceRequestTimeout);
+        nonceRequestTimeout = null;
+    }
+    nonceRequestInProgress = false;
+    currentNonce = null;
+    
+    // Call our logout endpoint to clean up server-side state
+    try {
+        await fetch('/auth/logout', {
+            method: 'POST',
+            credentials: 'include'
+        });
+    } catch (error) {
+        console.error('Error logging out:', error);
+    }
+    
+    // Reload the page to reset UI state
+    window.location.reload();
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOMContentLoaded event fired'); // Debug log
+    console.log('Auth.js DOMContentLoaded event fired');
     
+    // Add MetaMask account change listener
+    if (window.ethereum) {
+        window.ethereum.on('accountsChanged', async (accounts) => {
+            if (accounts.length === 0) {
+                // User disconnected from MetaMask
+                await handleMetaMaskDisconnect();
+            }
+        });
+
+        // Check initial connection state
+        window.ethereum.request({ method: 'eth_accounts' })
+            .then(accounts => {
+                isMetaMaskConnected = accounts.length > 0;
+            })
+            .catch(console.error);
+    }
+
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const metamaskButton = document.querySelector('.btn-metamask');
     const enterButton = document.getElementById('connectWallet');
 
-    console.log('Enter button found:', enterButton); // Debug log
+    console.log('Enter button found:', enterButton);
 
     // Initialize the Enter button if it exists
     if (enterButton) {
-        console.log('Setting up Enter button click handler'); // Debug log
-        enterButton.addEventListener('click', (e) => {
+        console.log('Setting up Enter button click handler');
+        // Remove any existing click handlers
+        const newEnterButton = enterButton.cloneNode(true);
+        enterButton.parentNode.replaceChild(newEnterButton, enterButton);
+        
+        // Add new click handler
+        newEnterButton.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('Enter button clicked'); // Debug log
+            e.stopPropagation();
+            console.log('Enter button clicked');
             openAuthModal();
         });
     }

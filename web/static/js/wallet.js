@@ -58,7 +58,7 @@ async function checkSession() {
         if (enterButton) {
             enterButton.innerHTML = 'Enter';
             enterButton.className = 'action-button';
-            enterButton.onclick = openAuthModal;
+            // Don't set onclick here, it will be handled by auth.js
         }
         
         return false;
@@ -70,134 +70,48 @@ async function checkSession() {
 
 // Update the connectWallet function
 async function connectWallet() {
-    // First check if MetaMask is installed
-    if (typeof window.ethereum === 'undefined') {
-        // If no MetaMask, open auth modal instead
-        openAuthModal();
-        return;
-    }
-
     try {
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const connectButton = document.getElementById('connectWallet');
-        
-        // Show loading spinner and hide connect button
-        if (loadingSpinner && connectButton) {
-            connectButton.style.display = 'none';
-            loadingSpinner.style.display = 'inline-flex';
+        // Check if already connected
+        if (isMetaMaskConnected) {
+            updateStepStatus('error', 'Wallet connection already pending. Please check MetaMask.', '#FFFFFF');
+            return;
+        }
+
+        // Check if MetaMask is installed
+        if (!window.ethereum) {
+            updateStepStatus('error', 'Please install MetaMask to continue.', '#FFFFFF');
+            return;
         }
 
         // Request account access
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const address = accounts[0];
-
-        // Get nonce from server
-        const nonceResponse = await fetch(`/auth/nonce?address=${address}`);
-        const nonceData = await nonceResponse.json();
-
-        // Request signature with the exact same message format as backend
-        const message = `Sign this message to verify your wallet. Nonce: ${nonceData.nonce}`;
-        const signature = await window.ethereum.request({
-            method: 'personal_sign',
-            params: [
-                message,
-                address
-            ]
-        });
-
-        // Verify signature with server
-        const verifyResponse = await fetch('/auth/verify', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                address: address,
-                signature: signature
-            }),
-            credentials: 'include'  // Important: include credentials
-        });
-
-        if (verifyResponse.ok) {
-            const verifyData = await verifyResponse.json();
-            isConnected = true;
-            currentAddress = address;
-            
-            // Update UI
-            updateWalletButton(address);
-            
-            // Dispatch wallet connected event
-            window.dispatchEvent(new Event('walletConnected'));
-            
-            // If there's a redirect URL in the response, use it
-            if (verifyData.redirect) {
-                window.location.href = verifyData.redirect;
-            } else {
-                // Otherwise just reload the page
-                window.location.reload();
-            }
-        } else {
-            const errorData = await verifyResponse.json();
-            console.error('Failed to verify signature:', errorData.error);
-            isConnected = false;
-            currentAddress = null;
-            
-            // Hide loading spinner and show connect button on error
-            if (loadingSpinner && connectButton) {
-                loadingSpinner.style.display = 'none';
-                connectButton.style.display = 'inline-block';
-            }
+        if (accounts.length === 0) {
+            updateStepStatus('error', 'No accounts found. Please connect your wallet.', '#FFFFFF');
+            return;
         }
+
+        // Set connection state
+        isMetaMaskConnected = true;
+        
+        // Start the authentication process
+        await startWalletConnection();
+        
+        updateStepStatus('success', 'Wallet connected successfully', '#90EE90');
     } catch (error) {
         console.error('Error connecting wallet:', error);
-        isConnected = false;
-        currentAddress = null;
-        
-        // Hide loading spinner and show connect button on error
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const connectButton = document.getElementById('connectWallet');
-        if (loadingSpinner && connectButton) {
-            loadingSpinner.style.display = 'none';
-            connectButton.style.display = 'inline-block';
-        }
+        isMetaMaskConnected = false;
+        updateStepStatus('error', error.message || 'Failed to connect wallet', '#FFFFFF');
     }
 }
 
 // Add disconnect function
 async function disconnectWallet() {
     try {
-        isConnected = false;
-        currentAddress = null;
-        
-        // Clear session cookie
-        await fetch('/auth/logout', {
-            method: 'POST',
-            credentials: 'include'
-        });
-
-        // Update UI
-        const enterButton = document.getElementById('connectWallet');
-        if (enterButton) {
-            enterButton.innerHTML = 'Enter';
-            enterButton.className = 'action-button';
-            enterButton.onclick = openAuthModal;
-        }
-
-        // Update nav items visibility
-        const navAuthItems = document.querySelector('.nav-auth-items');
-        if (navAuthItems) {
-            navAuthItems.classList.remove('visible');
-        }
-
-        // Dispatch wallet disconnected event
-        window.dispatchEvent(new Event('walletDisconnected'));
-        
-        // Reload the page
-        window.location.reload();
+        await handleMetaMaskDisconnect();
+        updateStepStatus('success', 'Wallet disconnected successfully', '#90EE90');
     } catch (error) {
         console.error('Error disconnecting wallet:', error);
-        // Even if there's an error, try to reload to get to a clean state
-        window.location.reload();
+        updateStepStatus('error', error.message || 'Failed to disconnect wallet', '#FFFFFF');
     }
 }
 
@@ -313,16 +227,19 @@ window.onclick = function(event) {
 
 // Update the event listeners
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Wallet.js DOMContentLoaded event fired');
+    
     // Check session status on page load - only once
     const hasSession = await checkSession();
 
     // Initialize the Enter button if user is not connected
     if (!hasSession) {
         const enterButton = document.getElementById('connectWallet');
-        if (enterButton) {
+        if (enterButton && !enterButton.getAttribute('data-initialized')) {
             enterButton.innerHTML = 'Enter';
             enterButton.className = 'action-button';
-            enterButton.onclick = openAuthModal;
+            // Mark as initialized to prevent double initialization
+            enterButton.setAttribute('data-initialized', 'true');
         }
     } else {
         // User is already connected
