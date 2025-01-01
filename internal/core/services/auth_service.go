@@ -103,32 +103,40 @@ func (s *authService) VerifySignature(ctx context.Context, address string, signa
 	message := fmt.Sprintf("Sign this message to verify your wallet. Nonce: %d", user.Nonce)
 
 	// Hash the message as Ethereum does
-	hashedMessage := []byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message))
-	messageHash := crypto.Keccak256Hash(hashedMessage)
+	fullMessage := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message)
+	messageHash := crypto.Keccak256([]byte(fullMessage))
 
 	// Decode signature
 	decodedSig := hexutil.MustDecode(signature)
+	if len(decodedSig) != 65 {
+		return false, "", fmt.Errorf("invalid signature length")
+	}
 
-	// The last byte is the recovery ID (v)
+	// Extract r, s, v from signature
+	signatureBytes := make([]byte, 65)
+	copy(signatureBytes[0:32], decodedSig[0:32])
+	copy(signatureBytes[32:64], decodedSig[32:64])
+
+	// Adjust v if needed
 	v := decodedSig[64]
-
-	// Convert recovery ID from MetaMask format
 	if v >= 27 {
 		v -= 27
 	}
-	decodedSig[64] = v
+	signatureBytes[64] = v
 
-	// Get public key
-	sigPublicKeyECDSA, err := crypto.SigToPub(messageHash.Bytes(), decodedSig)
+	// Recover public key
+	pubKeyECDSA, err := crypto.SigToPub(messageHash, signatureBytes)
 	if err != nil {
+		log.Printf("[AUTH] Failed to recover public key: %v", err)
 		return false, "", fmt.Errorf("failed to recover public key: %w", err)
 	}
 
 	// Get address from public key
-	recoveredAddr := crypto.PubkeyToAddress(*sigPublicKeyECDSA)
+	recoveredAddr := crypto.PubkeyToAddress(*pubKeyECDSA)
 
 	// Compare addresses (case-insensitive)
 	if !strings.EqualFold(recoveredAddr.Hex(), address) {
+		log.Printf("[AUTH] Address mismatch - Recovered: %s, Expected: %s", recoveredAddr.Hex(), address)
 		return false, "", fmt.Errorf("signature does not match address")
 	}
 
@@ -149,20 +157,21 @@ func (s *authService) VerifySignature(ctx context.Context, address string, signa
 		return false, "", fmt.Errorf("failed to generate session token: %w", err)
 	}
 
+	// Create session
 	session := &domain.Session{
 		ID:        primitive.NewObjectID(),
 		UserID:    user.ID,
 		Token:     sessionToken,
-		Address:   address,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
+		Address:   address, // Add address to session
 		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 
 	if err := s.sessionRepo.Create(ctx, session); err != nil {
 		return false, "", fmt.Errorf("failed to create session: %w", err)
 	}
 
+	log.Printf("[AUTH] Successfully verified signature and created session for address: %s", address)
 	return true, sessionToken, nil
 }
 
@@ -215,13 +224,25 @@ func (s *authService) Register(ctx context.Context, address string, email string
 }
 
 func (s *authService) VerifyToken(ctx context.Context, token string) (string, error) {
+	log.Printf("[AUTH] Verifying token")
 	session, err := s.sessionRepo.FindByToken(ctx, token)
 	if err != nil {
+		log.Printf("[AUTH] Error finding session: %v", err)
 		return "", fmt.Errorf("failed to find session: %w", err)
 	}
 	if session == nil {
+		log.Printf("[AUTH] Session not found")
 		return "", fmt.Errorf("invalid or expired session")
 	}
+	if session.ExpiresAt.Before(time.Now()) {
+		log.Printf("[AUTH] Session expired")
+		return "", fmt.Errorf("session expired")
+	}
+	if session.Address == "" {
+		log.Printf("[AUTH] Session has no address")
+		return "", fmt.Errorf("invalid session: no address")
+	}
+	log.Printf("[AUTH] Session verified for address: %s", session.Address)
 	return session.Address, nil
 }
 

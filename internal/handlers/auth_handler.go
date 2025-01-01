@@ -158,6 +158,7 @@ func (h *AuthHandler) GetSession(c *fiber.Ctx) error {
 	// Get session token from cookie
 	sessionCookie := c.Cookies("session")
 	if sessionCookie == "" {
+		log.Printf("[AUTH] No session cookie found")
 		return c.JSON(fiber.Map{
 			"authenticated": false,
 		})
@@ -166,12 +167,24 @@ func (h *AuthHandler) GetSession(c *fiber.Ctx) error {
 	// Verify session token and get address
 	address, err := h.authService.VerifyToken(c.Context(), sessionCookie)
 	if err != nil {
+		log.Printf("[AUTH] Session verification failed: %v", err)
+		// Clear invalid cookie
+		c.Cookie(&fiber.Cookie{
+			Name:     "session",
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			Secure:   true,
+			HTTPOnly: true,
+			SameSite: "Strict",
+		})
 		return c.JSON(fiber.Map{
 			"authenticated": false,
 			"error":         "Invalid session",
 		})
 	}
 
+	log.Printf("[AUTH] Session verified for address: %s", address)
 	return c.JSON(fiber.Map{
 		"authenticated": true,
 		"address":       address,

@@ -26,6 +26,8 @@ async function checkSession() {
         });
         
         const data = await response.json();
+        console.log('[AUTH] Session check response:', data);
+        
         if (data.authenticated && data.address) {
             isConnected = true;
             currentAddress = data.address;
@@ -41,8 +43,22 @@ async function checkSession() {
             if (navAuthItems) {
                 navAuthItems.classList.add('visible');
             }
+
+            // Hide auth modal if it's open
+            const authModal = document.getElementById('authModal');
+            if (authModal && authModal.classList.contains('active')) {
+                authModal.classList.remove('active');
+            }
             
             return true;
+        }
+        
+        // If not authenticated, ensure UI shows Enter button
+        const enterButton = document.getElementById('connectWallet');
+        if (enterButton) {
+            enterButton.innerHTML = 'Enter';
+            enterButton.className = 'action-button';
+            enterButton.onclick = openAuthModal;
         }
         
         return false;
@@ -103,15 +119,23 @@ async function connectWallet() {
         });
 
         if (verifyResponse.ok) {
+            const verifyData = await verifyResponse.json();
             isConnected = true;
             currentAddress = address;
+            
             // Update UI
             updateWalletButton(address);
+            
             // Dispatch wallet connected event
             window.dispatchEvent(new Event('walletConnected'));
-            // Ensure the page reloads after everything is set
-            await checkSession();  // Double-check session is set
-            window.location.reload();
+            
+            // If there's a redirect URL in the response, use it
+            if (verifyData.redirect) {
+                window.location.href = verifyData.redirect;
+            } else {
+                // Otherwise just reload the page
+                window.location.reload();
+            }
         } else {
             const errorData = await verifyResponse.json();
             console.error('Failed to verify signature:', errorData.error);
@@ -179,8 +203,12 @@ async function disconnectWallet() {
 
 // Add function to update wallet button
 function updateWalletButton(address) {
+    console.log('[AUTH] Updating wallet button for address:', address);
     const walletButton = document.getElementById('connectWallet');
-    if (!walletButton) return;
+    if (!walletButton) {
+        console.log('[AUTH] Wallet button not found');
+        return;
+    }
 
     if (!address) {
         // If no address, set up the Enter button
@@ -191,6 +219,7 @@ function updateWalletButton(address) {
     }
 
     const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+    console.log('[AUTH] Creating user dropdown with address:', shortAddress);
 
     // Replace the button with a user dropdown
     const userDropdown = document.createElement('div');
@@ -213,6 +242,12 @@ function updateWalletButton(address) {
 
     // Add click handler for the new user icon
     setupUserIconHandlers(userDropdown);
+    
+    // Show nav items
+    const navAuthItems = document.querySelector('.nav-auth-items');
+    if (navAuthItems) {
+        navAuthItems.classList.add('visible');
+    }
 }
 
 // Setup user icon click handlers
