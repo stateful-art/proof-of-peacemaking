@@ -1,7 +1,9 @@
 {{ define "navbar" }}
 <nav class="navbar">
     <div class="navbar-brand">
-        <a href="/" class="logo">Proof of Peacemaking</a>
+        <a href="/" class="logo">
+            <img src="/static/img/pop-h.png" alt="Proof of Peacemaking" class="logo-img">
+        </a>
     </div>
     <div class="navbar-menu">
         <div class="nav-auth-items {{ if .User }}visible{{ end }}">
