@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type expressionRepository struct {
@@ -47,7 +48,8 @@ func (r *expressionRepository) FindByID(ctx context.Context, id string) (*domain
 }
 
 func (r *expressionRepository) FindAll(ctx context.Context) ([]*domain.Expression, error) {
-	cursor, err := r.collection.Find(ctx, bson.M{})
+	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}})
+	cursor, err := r.collection.Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find expressions: %w", err)
 	}

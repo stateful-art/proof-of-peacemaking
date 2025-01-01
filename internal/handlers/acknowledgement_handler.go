@@ -39,7 +39,7 @@ func (h *AcknowledgementHandler) Create(c *fiber.Ctx) error {
 		})
 	}
 
-	log.Printf("[ACK] Creating acknowledgement for expression: %s", body.ExpressionID)
+	log.Printf("[ACK] Creating/updating acknowledgement for expression: %s", body.ExpressionID)
 	userAddress := c.Locals("userAddress").(string)
 	log.Printf("[ACK] User address from context: %s", userAddress)
 
@@ -58,15 +58,6 @@ func (h *AcknowledgementHandler) Create(c *fiber.Ctx) error {
 		})
 	}
 	log.Printf("[ACK] Found user with ID: %s", user.ID.Hex())
-
-	// Convert expression ID to ObjectID
-	expressionID, err := primitive.ObjectIDFromHex(body.ExpressionID)
-	if err != nil {
-		log.Printf("[ACK] Invalid expression ID format: %v", err)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid expression ID",
-		})
-	}
 
 	// Get the expression to check ownership
 	expression, err := h.expressionService.Get(c.Context(), body.ExpressionID)
@@ -107,27 +98,44 @@ func (h *AcknowledgementHandler) Create(c *fiber.Ctx) error {
 		})
 	}
 
+	var existingAck *domain.Acknowledgement
 	for _, ack := range existingAcks {
-		if ack.Acknowledger == user.ID {
-			log.Printf("[ACK] User has already acknowledged this expression")
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "You have already acknowledged this expression",
-			})
+		if ack.Acknowledger == user.ID.Hex() {
+			existingAck = ack
+			break
 		}
 	}
 
-	// Create acknowledgement domain object
+	if existingAck != nil {
+		// Update existing acknowledgement status
+		if existingAck.Status == domain.AcknowledgementStatusActive {
+			existingAck.Status = domain.AcknowledgementStatusRefuted
+		} else {
+			existingAck.Status = domain.AcknowledgementStatusActive
+		}
+		existingAck.UpdatedAt = time.Now()
+
+		if err := h.acknowledgementService.Update(c.Context(), existingAck); err != nil {
+			log.Printf("[ACK] Error updating acknowledgement: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to update acknowledgement",
+			})
+		}
+
+		return c.JSON(existingAck)
+	}
+
+	// Create new acknowledgement
 	acknowledgement := &domain.Acknowledgement{
 		ID:           primitive.NewObjectID(),
-		ExpressionID: expressionID,
-		Acknowledger: user.ID,
+		ExpressionID: body.ExpressionID,
+		Acknowledger: user.ID.Hex(),
 		Content:      body.Content,
-		Status:       "pending",
+		Status:       domain.AcknowledgementStatusActive,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
 
-	// Call service to create acknowledgement
 	if err := h.acknowledgementService.Create(c.Context(), acknowledgement); err != nil {
 		log.Printf("[ACK] Error creating acknowledgement: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

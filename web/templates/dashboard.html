@@ -5,240 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <title>{{.Title}} - Proof of Peacemaking</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
     <script type="module" src="/static/js/ethers-init.js"></script>
 </head>
-<body>
+<body class="dark-mode">
     <nav class="navbar">
         <div class="navbar-brand">
             <a href="/" class="logo">Proof of Peacemaking</a>
         </div>
         <div class="navbar-menu">
             <a href="/feed" class="nav-item">Feed</a>
-            <a href="/dashboard" class="nav-item">Dashboard</a>
+            <a href="/dashboard" class="nav-item active">Dashboard</a>
             <button id="connectWallet" class="btn-connect">Connect Wallet</button>
         </div>
     </nav>
 
     <main class="main-content">
-        <style>
-            .dashboard-container {
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 20px;
-            }
-
-            .dashboard-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 30px;
-            }
-
-            .dashboard-stats {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                gap: 20px;
-                margin-bottom: 40px;
-            }
-
-            .stat-card {
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            }
-
-            .stat-card h3 {
-                color: #666;
-                font-size: 0.9em;
-                margin-bottom: 10px;
-            }
-
-            .stat-card .value {
-                font-size: 2em;
-                font-weight: bold;
-                color: #333;
-            }
-
-            .dashboard-sections {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                gap: 30px;
-            }
-
-            .dashboard-section {
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            }
-
-            .dashboard-section h2 {
-                margin-bottom: 20px;
-                color: #333;
-                text-align: center;
-            }
-
-            .expression-list {
-                display: flex;
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .expression-item {
-                padding: 15px;
-                border: 1px solid #eee;
-                border-radius: 8px;
-            }
-
-            .expression-item .content {
-                margin-bottom: 10px;
-            }
-
-            .expression-item .meta {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                font-size: 0.9em;
-                color: #666;
-            }
-
-            .proof-list {
-                display: flex;
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .proof-item {
-                padding: 15px;
-                border: 1px solid #eee;
-                border-radius: 8px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            .proof-item .status {
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 0.9em;
-            }
-
-            .status.pending {
-                background: #FFF3E0;
-                color: #E65100;
-            }
-
-            .status.approved {
-                background: #E8F5E9;
-                color: #2E7D32;
-            }
-
-            .empty-state {
-                text-align: center;
-                padding: 40px 20px;
-                color: #666;
-            }
-
-            .btn-primary {
-                padding: 10px 20px;
-                background: #2196F3;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 1em;
-                transition: background-color 0.2s;
-            }
-
-            .btn-primary:hover {
-                background: #1E88E5;
-            }
-
-            @media (max-width: 768px) {
-                .dashboard-sections {
-                    grid-template-columns: 1fr;
-                }
-            }
-        </style>
-
-        <div class="dashboard-container">
+        <div class="container">
             <div class="dashboard-header">
                 <h1>Dashboard</h1>
             </div>
-
-            <div class="dashboard-stats">
-                <div class="stat-card">
-                    <h3>Total Expressions</h3>
-                    <div class="value">{{.Stats.TotalExpressions}}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Total Acknowledgements</h3>
-                    <div class="value">{{.Stats.TotalAcknowledgements}}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Proof NFTs</h3>
-                    <div class="value">{{.Stats.TotalProofs}}</div>
-                </div>
-            </div>
-
-            <div class="dashboard-sections">
-                <div class="dashboard-section">
-                    <h2>Recent Expressions</h2>
-                    {{if .RecentExpressions}}
-                    <div class="expression-list">
-                        {{range .RecentExpressions}}
-                        <div class="expression-item">
-                            <div class="content">{{.Content}}</div>
-                            <div class="meta">
-                                <span class="timestamp">{{.Timestamp}}</span>
-                                <span class="acknowledgements">{{.AcknowledgementCount}} acknowledgements</span>
-                            </div>
-                        </div>
-                        {{end}}
-                    </div>
-                    {{else}}
-                    <div class="empty-state">
-                        <p>No expressions yet</p>
-                        <button class="btn-primary" onclick="createExpression()">Create Expression</button>
-                    </div>
-                    {{end}}
-                </div>
-
-                <div class="dashboard-section">
-                    <h2>Proof NFTs</h2>
-                    {{if .Proofs}}
-                    <div class="proof-list">
-                        {{range .Proofs}}
-                        <div class="proof-item">
-                            <div class="content">
-                                <div>Token ID: {{.TokenID}}</div>
-                                <div class="meta">Expression: {{.ExpressionID}}</div>
-                            </div>
-                            <div class="status {{if .Approved}}approved{{else}}pending{{end}}">
-                                {{if .Approved}}Approved{{else}}Pending{{end}}
-                            </div>
-                        </div>
-                        {{end}}
-                    </div>
-                    {{else}}
-                    <div class="empty-state">
-                        <p>No proof NFTs yet</p>
-                    </div>
-                    {{end}}
-                </div>
-            </div>
+            <!-- Rest of your dashboard content -->
         </div>
     </main>
-
-    <script src="/static/js/wallet.js"></script>
-    <script src="/static/js/main.js"></script>
-    <script>
-    async function createExpression() {
-        // TODO: Show modal or form for creating expression
-        console.log('Opening create expression modal...');
-    }
-    </script>
 </body>
 </html> 

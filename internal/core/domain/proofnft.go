@@ -9,8 +9,8 @@ import (
 type ProofNFT struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty"`
 	TokenID      int                `bson:"tokenId"`
-	Expression   primitive.ObjectID `bson:"expressionId"`
-	Acknowledger primitive.ObjectID `bson:"acknowledgerId"`
+	Expression   string             `bson:"expressionId"`
+	Acknowledger string             `bson:"acknowledgerId"`
 	IPFSHash     string             `bson:"ipfsHash"`
 	Status       string             `bson:"status"`
 	CreatedAt    time.Time          `bson:"createdAt"`

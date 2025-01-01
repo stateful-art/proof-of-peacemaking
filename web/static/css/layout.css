@@ -1,0 +1,70 @@
+/* Common layout patterns */
+.main-content {
+    min-height: calc(100vh - var(--navbar-height));
+    padding-top: calc(var(--navbar-height) + var(--content-spacing));
+    width: 100%;
+}
+
+.container {
+    width: 100%;
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 0 var(--container-padding);
+}
+
+/* Common grid layouts */
+.grid {
+    display: grid;
+    gap: var(--content-spacing);
+}
+
+.grid-sidebar {
+    grid-template-columns: 300px 1fr;
+}
+
+@media (max-width: 768px) {
+    .grid-sidebar {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Common card styles */
+.card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px;
+}
+
+/* Common button styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: var(--accent-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: rgba(239, 243, 244, 0.1);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+} 

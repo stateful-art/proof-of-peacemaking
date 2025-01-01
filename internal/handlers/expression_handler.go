@@ -102,8 +102,8 @@ func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
 	// Create expression domain object
 	expression := &domain.Expression{
 		ID:             primitive.NewObjectID(),
-		Creator:        user.ID,
-		CreatorAddress: user.Address,
+		Creator:        user.ID.Hex(),
+		CreatorAddress: userAddress,
 		Content:        content,
 		Status:         "pending",
 		CreatedAt:      time.Now(),

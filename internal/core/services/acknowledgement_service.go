@@ -39,3 +39,18 @@ func (s *acknowledgementService) ListByUser(ctx context.Context, userAddress str
 	}
 	return acknowledgements, nil
 }
+
+func (s *acknowledgementService) Update(ctx context.Context, acknowledgement *domain.Acknowledgement) error {
+	if err := s.acknowledgementRepo.Update(ctx, acknowledgement); err != nil {
+		return fmt.Errorf("failed to update acknowledgement: %w", err)
+	}
+	return nil
+}
+
+func (s *acknowledgementService) ListByStatus(ctx context.Context, status domain.AcknowledgementStatus) ([]*domain.Acknowledgement, error) {
+	acknowledgements, err := s.acknowledgementRepo.FindByStatus(ctx, status)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list acknowledgements by status: %w", err)
+	}
+	return acknowledgements, nil
+}

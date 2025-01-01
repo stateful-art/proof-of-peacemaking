@@ -37,6 +37,8 @@ type AcknowledgementService interface {
 	Create(ctx context.Context, acknowledgement *domain.Acknowledgement) error
 	ListByExpression(ctx context.Context, expressionID string) ([]*domain.Acknowledgement, error)
 	ListByUser(ctx context.Context, userAddress string) ([]*domain.Acknowledgement, error)
+	ListByStatus(ctx context.Context, status domain.AcknowledgementStatus) ([]*domain.Acknowledgement, error)
+	Update(ctx context.Context, acknowledgement *domain.Acknowledgement) error
 }
 
 type ProofNFTService interface {

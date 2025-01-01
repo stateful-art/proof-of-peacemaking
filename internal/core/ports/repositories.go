@@ -41,4 +41,6 @@ type AcknowledgementRepository interface {
 	Create(ctx context.Context, acknowledgement *domain.Acknowledgement) error
 	FindByExpression(ctx context.Context, expressionID string) ([]*domain.Acknowledgement, error)
 	FindByCreator(ctx context.Context, creatorAddress string) ([]*domain.Acknowledgement, error)
+	FindByStatus(ctx context.Context, status domain.AcknowledgementStatus) ([]*domain.Acknowledgement, error)
+	Update(ctx context.Context, acknowledgement *domain.Acknowledgement) error
 }

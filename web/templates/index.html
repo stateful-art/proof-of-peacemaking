@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
     <title>{{.Title}} - Proof of Peacemaking</title>
-    <link rel="stylesheet" href="../static/css/styles.css" />
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <link rel="stylesheet" href="/static/css/index.css">
     <script type="module" src="/static/js/ethers-init.js"></script>
   </head>
   <body>
@@ -14,7 +17,7 @@
         <a href="/" class="logo">Proof of Peacemaking</a>
       </div>
       <div class="navbar-menu">
-        <div id="navAuthButtons" style="display: none" class="nav-auth-items">
+        <div id="navAuthButtons" class="nav-auth-items">
           <a href="/feed" class="nav-item">Feed</a>
           <a href="/dashboard" class="nav-item">Dashboard</a>
         </div>
@@ -54,45 +57,34 @@
 
     <div class="event-links">
       <a href="/events/onboarding" class="event-link">Express</a>
-      <a
-        href="/events/conventions"
-        class="event-link"
-        style="color: var(--color-black)"
-        >Acknowledge</a
-      >
+      <a href="/events/conventions" class="event-link event-link-light">Acknowledge</a>
       <a href="/events/workshops" class="event-link">Request</a>
       <a href="/events/hackathons" class="event-link">Proof</a>
     </div>
 
     <div class="divider"></div>
 
-   
-
     <div id="pre-connect-only">
-        <div class="split-section">
-            <div class="split-content black">
-              <h2 style="color: white">Just enough equality on peacemaking</h2>
-              <p style="color: white">
-                "Everyone has the right to take initiative, assert equality and
-                exercise free will in contributing to a world peace treaty, while
-                being recognized as a legitimate co-signer, regardless of their
-                entitlement or official status."
-              </p>
-            </div>
-            <div class="image-placeholder">
-              <img
-                src="/static/img/our-right.webp"
-                alt="Peace through equality"
-                style="width: 100%; height: 100%; object-fit: cover"
-              />
-            </div>
-          </div>
+      <div class="split-section">
+        <div class="split-content black">
+          <h2>Just enough equality on peacemaking</h2>
+          <p>
+            "Everyone has the right to take initiative, assert equality and
+            exercise free will in contributing to a world peace treaty, while
+            being recognized as a legitimate co-signer, regardless of their
+            entitlement or official status."
+          </p>
+        </div>
+        <div class="image-placeholder">
+          <img
+            src="/static/img/our-right.webp"
+            alt="Peace through equality"
+          />
+        </div>
       </div>
-
-    
-
-      <div class="divider"></div>
     </div>
+
+    <div class="divider"></div>
 
     <footer class="footer" id="footer">
       <div class="container">
@@ -107,45 +99,22 @@
           </div>
 
           <div class="footer-links">
-            <!-- <div class="link-group">
-                        <h4>Resources</h4>
-                        <a href="/research">Research</a>
-                        <a href="/blog">Blog</a>
-                        <a href="/events">Events</a>
-                        <a href="/contact">Contact</a>
-                    </div> -->
             <div class="link-group">
               <h4>Connect</h4>
               <div class="social-links">
-                <a href="https://github.com/stateful-art" target="_blank"
-                  >GitHub</a
-                >
-                <a href="https://twitter.com/statefulArt" target="_blank"
-                  >Twitter</a
-                >
-                <a href="https://discord.gg/sqjdyCWNAR" target="_blank"
-                  >Discord</a
-                >
+                <a href="https://github.com/stateful-art" target="_blank">GitHub</a>
+                <a href="https://twitter.com/statefulArt" target="_blank">Twitter</a>
+                <a href="https://discord.gg/sqjdyCWNAR" target="_blank">Discord</a>
               </div>
             </div>
-            <!-- <div class="link-group">
-                        <h4>Legal</h4>
-                        <a href="/terms">Terms of Service</a>
-                        <a href="/privacy">Privacy Policy</a>
-                        <a href="/cookies">Cookie Policy</a>
-                        
-                    </div> -->
           </div>
         </div>
         <div class="footer-bottom">
           <p>
             &copy; 2024
-            <a
-              href="https://stateful.art"
-              style="text-decoration: none; color: inherit"
-              ><span style="color: white">st</span
-              ><span style="color: red">art</span> a World Peace</a
-            >. All rights acknowledged.
+            <a href="https://stateful.art" class="footer-brand">
+              <span class="footer-brand-st">st</span><span class="footer-brand-art">art</span> a World Peace
+            </a>. All rights acknowledged.
           </p>
         </div>
       </div>
@@ -159,7 +128,6 @@
         const footer = document.getElementById("footer");
         const preConnect = document.getElementById("pre-connect-only");
 
-        // Check if wallet is connected
         async function checkWalletConnection() {
           try {
             const response = await fetch("/auth/session");
@@ -179,14 +147,11 @@
           }
         }
 
-        // Initial check
         checkWalletConnection();
 
-        // Connect wallet when hero button is clicked
         connectWalletHero.addEventListener("click", async () => {
           if (typeof window.ethereum !== "undefined") {
             try {
-              // This will trigger the wallet connection flow
               document.getElementById("connectWallet").click();
             } catch (error) {
               console.error("Error connecting wallet:", error);
@@ -196,7 +161,6 @@
           }
         });
 
-        // Listen for wallet connection events
         window.addEventListener("walletConnected", () => {
           checkWalletConnection();
         });
@@ -206,644 +170,5 @@
         });
       });
     </script>
-
-    <style>
-      .home-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 40px 20px;
-      }
-
-      .hero-section {
-        text-align: center;
-        padding: 60px 20px;
-      }
-
-      .hero-section h1 {
-        font-size: 2.5em;
-        color: #333;
-        margin-bottom: 20px;
-      }
-
-      .hero-text {
-        font-size: 1.2em;
-        color: #666;
-        max-width: 600px;
-        margin: 0 auto 40px;
-        line-height: 1.6;
-      }
-
-      .cta-buttons {
-        display: flex;
-        gap: 20px;
-        justify-content: center;
-      }
-
-      .btn-primary {
-        padding: 12px 24px;
-        background: #000000;
-        color: white;
-        text-decoration: none;
-        border-radius: 4px;
-        transition: background-color 0.2s;
-        border: none;
-        cursor: pointer;
-        font-size: 1em;
-      }
-
-      .btn-primary:hover {
-        background: #000000;
-      }
-
-      .btn-secondary {
-        padding: 12px 24px;
-        background: #2196f3;
-        color: white;
-        text-decoration: none;
-        border-radius: 4px;
-        transition: background-color 0.2s;
-      }
-
-      .btn-secondary:hover {
-        background: #1e88e5;
-      }
-
-      #authenticatedButtons {
-        display: flex;
-        gap: 1rem;
-      }
-
-      :root {
-        --color-primary: #ff69b4;
-        --color-secondary: #ffd700;
-        /* --color-blue: #80b0dc; */
-        /* --color-blue: #44bcec; */
-        --color-blue: #000000;
-        --color-black: #000000;
-        --color-text: #333;
-        --color-background: #fff;
-        --color-footer: #000;
-        --font-display: "Playfair Display", Georgia, serif;
-        --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-      }
-
-      @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600&display=swap");
-
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family: var(--font-body);
-        line-height: 1.6;
-        color: var(--color-text);
-      }
-
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 2rem;
-      }
-
-      /* Navbar */
-      /* .navbar {
-            padding: 1.5rem 0;
-            background: var(--color-background);
-            border-bottom: 1px solid #eee;
-        } */
-
-      .navbar .container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      .logo {
-        font-size: 3.5rem;
-        font-family: var(--font-display);
-        font-weight: bold;
-        text-decoration: none;
-        color: var(--color-text);
-        margin-left: 0;
-        line-height: 1.2;
-        max-width: 200px;
-      }
-
-      .nav-links {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 1.5rem;
-        position: relative;
-      }
-
-      .nav-links a {
-        text-decoration: none;
-        color: var(--color-text);
-        font-family: var(--font-display);
-        font-size: 1.2rem;
-        font-weight: 500;
-        transition: opacity 0.2s ease;
-      }
-
-      .nav-links a:hover {
-        opacity: 0.7;
-      }
-
-      /* Hero Section */
-      .hero {
-        padding: 8rem 0;
-        background-color: var(--color-background);
-        text-align: center;
-        border-bottom: 2px solid #000;
-      }
-
-      .hero h1 {
-        font-size: 6rem;
-        margin-bottom: 1.5rem;
-        line-height: 1.1;
-        font-weight: 900;
-        font-family: var(--font-display);
-        letter-spacing: -0.02em;
-      }
-
-      .hero p {
-        font-size: 2rem;
-        color: #666;
-        max-width: 800px;
-        margin: 0 auto;
-        font-weight: 500;
-      }
-
-      /* Intro Section */
-      .intro {
-        padding: 4rem 0;
-        background-color: #f8f8f8;
-      }
-
-      .intro h2 {
-        text-align: center;
-        margin-bottom: 3rem;
-        font-size: 2.5rem;
-      }
-
-      .content-grid {
-        display: grid;
-        grid-template-columns: repeat(1, 1fr);
-        gap: 2rem;
-      }
-
-      .content-item {
-        padding: 2rem;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-
-      .content-item h3 {
-        margin-bottom: 1rem;
-        font-size: 1.5rem;
-      }
-
-      /* Footer */
-      .footer {
-        background: var(--color-footer);
-        color: white;
-        padding: 4rem 0 2rem;
-      }
-
-      .footer .container {
-        max-width: 100% !important;
-        padding: 0 10rem;
-      }
-
-      .footer-content {
-        display: grid;
-        grid-template-columns: 1fr 2fr;
-        gap: 4rem;
-        margin-bottom: 3rem;
-      }
-
-      .newsletter {
-        padding-right: 2rem;
-      }
-
-      .newsletter h3 {
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-      }
-
-      .newsletter-form {
-        display: flex;
-        gap: 1rem;
-        margin-top: 1.5rem;
-      }
-
-      .newsletter-form input {
-        flex: 1;
-        padding: 0.75rem;
-        border: none;
-        border-radius: 4px;
-      }
-
-      .newsletter-form button {
-        padding: 0.75rem 1.5rem;
-        background: var(--color-primary);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-
-      .footer-links {
-        display: grid;
-        grid-template-columns: repeat(1, 1fr);
-        /* grid-template-columns: repeat(3, 1fr); */
-        gap: 4rem;
-        justify-content: center;
-        margin-left: auto;
-        padding-left: 0;
-      }
-
-      .link-group {
-        text-align: left;
-        min-width: 160px;
-      }
-
-      .link-group h4 {
-        margin-bottom: 1rem;
-        white-space: nowrap;
-      }
-
-      .link-group a {
-        display: block;
-        color: #fff;
-        text-decoration: none;
-        margin-bottom: 0.5rem;
-        opacity: 0.8;
-      }
-
-      .footer-bottom {
-        padding-top: 2rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        text-align: center;
-        color: white;
-      }
-
-      /* Responsive Design */
-
-      @media (min-width: 840px) {
-        .logo {
-          font-size: 2.5rem;
-          max-width: none;
-          white-space: nowrap;
-        }
-      }
-      @media (max-width: 768px) {
-        .hero h1 {
-          font-size: 4rem;
-        }
-
-        .content-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .hero {
-          padding: 4rem 0;
-        }
-
-        .footer-content {
-          grid-template-columns: 1fr;
-        }
-
-        .footer-links {
-          grid-template-columns: 1fr 1fr;
-        }
-
-        .nav-links {
-          flex-direction: column;
-          background: white;
-          padding: 1rem 0;
-          text-align: center;
-        }
-
-        .logo {
-          font-size: 2.5rem;
-          max-width: 120px;
-        }
-      }
-
-      @media (max-width: 480px) {
-        .footer-links {
-          grid-template-columns: 1fr;
-          padding-left: 0;
-          margin-left: 0;
-        }
-
-        .link-group {
-          text-align: left;
-          padding-left: 0;
-        }
-
-        .newsletter-form {
-          flex-direction: column;
-        }
-
-        .footer-bottom {
-          padding-left: 0;
-        }
-      }
-
-      /* Section Dividers */
-      .divider {
-        height: 2px;
-        background: #000;
-        margin: 0;
-      }
-
-      .divider-vertical {
-        width: 2px;
-        background: #000;
-        height: 100%;
-      }
-
-      /* Split Sections */
-      .split-section {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        min-height: 600px;
-      }
-
-      .split-content {
-        padding: 4rem;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
-
-      .split-content.pink {
-        background: var(--color-primary);
-        color: white;
-      }
-
-      .split-content.blue {
-        background: var(--color-blue);
-      }
-
-      .split-content.black {
-        background: var(--color-black);
-      }
-
-      .split-content.yellow {
-        background: var(--color-secondary);
-      }
-
-      /* Button Styles */
-      .split-content {
-        position: relative; /* For absolute positioning of button */
-      }
-
-      .action-button {
-        position: absolute;
-        bottom: 2rem;
-        right: 2rem;
-        padding: 1rem 2rem;
-        background: var(--color-black);
-        color: white;
-        text-decoration: none;
-        border-radius: 4px;
-        font-family: var(--font-display);
-        font-size: 1.2rem;
-        transition: opacity 0.2s ease;
-      }
-
-      .action-button:hover {
-        opacity: 0.9;
-      }
-
-      @media (max-width: 768px) {
-        .action-button {
-          position: relative;
-          bottom: auto;
-          right: auto;
-          display: inline-block;
-          margin-top: 2rem;
-        }
-      }
-
-      /* Image Placeholders */
-      .image-placeholder {
-        background: #f0f0f0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        color: #666;
-      }
-
-      @media (max-width: 768px) {
-        .split-section {
-          grid-template-columns: 1fr;
-          min-height: auto;
-        }
-
-        .image-placeholder {
-          min-height: 300px;
-        }
-
-        .split-content {
-          padding: 3rem 2rem;
-        }
-      }
-
-      h1,
-      h2,
-      h3,
-      h4 {
-        font-family: var(--font-display);
-        letter-spacing: -0.02em;
-      }
-
-      .split-content h2 {
-        font-size: 4.5rem;
-        margin-bottom: 1.5rem;
-        line-height: 1.1;
-        font-weight: 700;
-      }
-
-      .split-content p {
-        font-size: 1.8rem;
-        line-height: 1.4;
-        font-weight: 400;
-      }
-
-      @media (max-width: 768px) {
-        .split-content h2 {
-          font-size: 3rem;
-        }
-
-        .split-content p {
-          font-size: 1.4rem;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-        }
-
-        .split-section {
-          overflow: hidden;
-        }
-      }
-
-      /* Navbar */
-      .nav-links {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 1.5rem;
-      }
-
-      .nav-item {
-        position: static;
-      }
-
-      .submenu {
-        display: none;
-        position: absolute;
-        top: 100%;
-        right: 0;
-        background: white;
-        border: 1px solid #eee;
-        border-radius: 4px;
-        padding: 0;
-        width: max-content;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        z-index: 1000;
-      }
-
-      .submenu a {
-        display: block;
-        padding: 0.8rem 2rem;
-        color: white;
-        text-decoration: none;
-        font-size: 1rem;
-        white-space: nowrap;
-        text-align: right;
-      }
-
-      .submenu a:nth-child(1) {
-        background: #ff4444;
-      }
-      .submenu a:nth-child(2) {
-        background: #2c2c2c;
-      }
-      .submenu a:nth-child(3) {
-        background: #41b2d2;
-      }
-      .submenu a:nth-child(4) {
-        background: #ff69b4;
-      }
-
-      .submenu a:hover {
-        opacity: 0.9;
-      }
-
-      /* Event Links Section */
-      .event-links {
-        display: flex;
-        width: 100%;
-      }
-
-      .event-link {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 25%;
-        padding: 2rem;
-        color: white;
-        text-decoration: none;
-        font-size: 1.2rem;
-        font-weight: 500;
-        transition: opacity 0.2s ease;
-      }
-
-      .event-link:nth-child(1) {
-        background: #ff4444;
-      }
-      .event-link:nth-child(2) {
-        background: #f0f0f0;
-      }
-      .event-link:nth-child(3) {
-        background: #41b2d2;
-      }
-      .event-link:nth-child(4) {
-        background: #2c2c2c;
-      }
-
-      .event-link:hover {
-        opacity: 0.9;
-      }
-
-      .nav-item {
-        position: relative;
-        display: inline-block;
-      }
-
-      .submenu {
-        display: none;
-        position: absolute;
-        top: 100%;
-        right: 0;
-        background: white;
-        border: 1px solid #eee;
-        border-radius: 4px;
-        padding: 0;
-        width: max-content;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        z-index: 1000;
-      }
-
-      @media (min-width: 480px) {
-        .nav-item:hover > .submenu {
-          display: block;
-        }
-      }
-
-      @media (max-width: 480px) {
-        .submenu {
-          display: none !important;
-        }
-      }
-
-      .submenu a {
-        display: block;
-        padding: 0.8rem 2rem;
-        color: var(--color-text);
-        text-decoration: none;
-        font-size: 1rem;
-        white-space: nowrap;
-        text-align: right;
-        color: white;
-      }
-
-      .submenu a:hover {
-        opacity: 0.9;
-      }
-
-      /* Mobile layout for event links */
-      @media (max-width: 480px) {
-        .event-links {
-          flex-wrap: wrap; /* Allow items to wrap */
-        }
-
-        .event-link {
-          width: 50%; /* Make each link take half width */
-          padding: 1.5rem; /* Slightly reduce padding */
-          font-size: 1rem; /* Smaller font size */
-        }
-      }
-    </style>
   </body>
 </html>

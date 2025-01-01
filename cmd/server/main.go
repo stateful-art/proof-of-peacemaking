@@ -30,18 +30,19 @@ func initServices(db *mongo.Database) (
 ) {
 	// Initialize repositories
 	userRepo := mongodb.NewUserRepository(db)
+	sessionRepo := mongodb.NewSessionRepository(db)
 	expressionRepo := mongodb.NewExpressionRepository(db)
 	acknowledgementRepo := mongodb.NewAcknowledgementRepository(db)
-	sessionRepo := mongodb.NewSessionRepository(db)
 	notificationRepo := mongodb.NewNotificationRepository(db)
+	proofNFTRepo := mongodb.NewProofNFTRepository(db)
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
-	expressionService := services.NewExpressionService(expressionRepo)
-	acknowledgementService := services.NewAcknowledgementService(acknowledgementRepo)
 	authService := services.NewAuthService(userService, sessionRepo)
+	expressionService := services.NewExpressionService(expressionRepo, acknowledgementRepo)
+	acknowledgementService := services.NewAcknowledgementService(acknowledgementRepo)
 	notificationService := services.NewNotificationService(notificationRepo, userRepo)
-	proofNFTService := services.NewProofNFTService(userRepo)
+	proofNFTService := services.NewProofNFTService(userRepo, proofNFTRepo)
 	feedService := services.NewFeedService(expressionService, userService, acknowledgementService)
 
 	return notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService
@@ -70,10 +71,24 @@ func setupHandlers(app *fiber.App) *handlers.Handlers {
 		userService,
 	)
 
-	// Setup routes
-	routes.SetupRoutes(app, h)
+	// Setup routes with user service for feed handler
+	routes.SetupRoutes(app, h, userService)
 
 	return h
+}
+
+func initTemplateEngine() *html.Engine {
+	engine := html.New("./web/templates", ".html")
+
+	// Add template functions
+	engine.AddFunc("trimAddress", func(address string) string {
+		if len(address) <= 10 {
+			return address
+		}
+		return address[:6] + "..." + address[len(address)-4:]
+	})
+
+	return engine
 }
 
 func main() {
@@ -86,7 +101,7 @@ func main() {
 	}
 
 	// Setup template engine
-	engine := html.New(filepath.Join(projectRoot, "web/templates"), ".html")
+	engine := initTemplateEngine()
 	engine.Reload(true) // Enable this for development
 	engine.Debug(true)  // Enable debug mode for development
 

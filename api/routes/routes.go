@@ -2,6 +2,7 @@ package routes
 
 import (
 	"log"
+	"proofofpeacemaking/internal/core/ports"
 	"proofofpeacemaking/internal/handlers"
 	"proofofpeacemaking/internal/middleware"
 	"time"
@@ -10,7 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
-func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
+func SetupRoutes(app *fiber.App, h *handlers.Handlers, userService ports.UserService) {
 	// Add CORS middleware
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
@@ -57,6 +58,9 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	// Create middleware using auth service from handlers
 	authMiddleware := middleware.NewAuthMiddleware(h.Auth.GetAuthService())
 
+	// Create feed handler with user service
+	feedHandler := handlers.NewFeedHandler(h.Feed.GetFeedService(), userService)
+
 	// Home page (public)
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("index", fiber.Map{
@@ -74,7 +78,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	// Protected routes
 
 	// Feed page (protected)
-	app.Get("/feed", authMiddleware.Authenticate(), h.Feed.GetFeed)
+	app.Get("/feed", authMiddleware.Authenticate(), feedHandler.HandleFeed)
 
 	// Dashboard page (protected)
 	app.Get("/dashboard", authMiddleware.Authenticate(), h.Dashboard.GetDashboard)

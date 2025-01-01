@@ -46,8 +46,13 @@ func (s *notificationService) NotifyNewAcknowledgement(
 		return err
 	}
 
+	creatorID, err := primitive.ObjectIDFromHex(expression.Creator)
+	if err != nil {
+		return fmt.Errorf("invalid creator ID format: %w", err)
+	}
+
 	userNotification := &domain.UserNotification{
-		UserID:         expression.Creator,
+		UserID:         creatorID,
 		NotificationID: notification.ID,
 		CreatedAt:      notification.CreatedAt,
 	}
@@ -92,8 +97,19 @@ func (s *notificationService) NotifyNFTMinted(ctx context.Context, nft *domain.P
 		return err
 	}
 
+	// Convert string IDs to ObjectIDs
+	expressionID, err := primitive.ObjectIDFromHex(nft.Expression)
+	if err != nil {
+		return fmt.Errorf("invalid expression ID format: %w", err)
+	}
+
+	acknowledgerID, err := primitive.ObjectIDFromHex(nft.Acknowledger)
+	if err != nil {
+		return fmt.Errorf("invalid acknowledger ID format: %w", err)
+	}
+
 	// Notify both creator and acknowledger
-	for _, userID := range []primitive.ObjectID{nft.Expression, nft.Acknowledger} {
+	for _, userID := range []primitive.ObjectID{expressionID, acknowledgerID} {
 		userNotification := &domain.UserNotification{
 			UserID:         userID,
 			NotificationID: notification.ID,
@@ -142,13 +158,29 @@ func (s *notificationService) NotifyProofRequestAccepted(ctx context.Context, re
 		Type:    domain.NotificationProofRequestAccepted,
 		Title:   "Proof Request Accepted",
 		Message: "Your proof request has been accepted",
+		Data: map[string]interface{}{
+			"expressionId": request.ExpressionID,
+			"requestedBy":  request.InitiatorID,
+		},
+		CreatedAt: request.CreatedAt,
 	}
 
 	if err := s.notificationRepo.Create(ctx, notification); err != nil {
 		return err
 	}
 
-	return nil
+	initiatorID, err := primitive.ObjectIDFromHex(request.InitiatorID)
+	if err != nil {
+		return err
+	}
+
+	userNotification := &domain.UserNotification{
+		UserID:         initiatorID,
+		NotificationID: notification.ID,
+		CreatedAt:      notification.CreatedAt,
+	}
+
+	return s.notificationRepo.CreateUserNotification(ctx, userNotification)
 }
 
 func (s *notificationService) NotifyProofRequestRejected(ctx context.Context, request *domain.ProofRequest) error {
@@ -156,11 +188,27 @@ func (s *notificationService) NotifyProofRequestRejected(ctx context.Context, re
 		Type:    domain.NotificationProofRequestRejected,
 		Title:   "Proof Request Rejected",
 		Message: "Your proof request has been rejected",
+		Data: map[string]interface{}{
+			"expressionId": request.ExpressionID,
+			"requestedBy":  request.InitiatorID,
+		},
+		CreatedAt: request.CreatedAt,
 	}
 
 	if err := s.notificationRepo.Create(ctx, notification); err != nil {
 		return err
 	}
 
-	return nil
+	initiatorID, err := primitive.ObjectIDFromHex(request.InitiatorID)
+	if err != nil {
+		return err
+	}
+
+	userNotification := &domain.UserNotification{
+		UserID:         initiatorID,
+		NotificationID: notification.ID,
+		CreatedAt:      notification.CreatedAt,
+	}
+
+	return s.notificationRepo.CreateUserNotification(ctx, userNotification)
 }

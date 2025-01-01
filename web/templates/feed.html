@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <title>{{.Title}} - Proof of Peacemaking</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/navbar.css">
     <link rel="stylesheet" href="/static/css/feed.css">
     <link rel="stylesheet" href="/static/css/modal.css">
     <script type="module" src="/static/js/ethers-init.js"></script>
 </head>
 <body class="dark-mode">
-    <!-- Navbar -->
     <nav class="navbar">
         <div class="navbar-brand">
             <a href="/" class="logo">Proof of Peacemaking</a>
@@ -26,163 +27,101 @@
     <main class="main-content">
         <div class="feed-container">
             <div class="feed-header">
-                <h1>Activity Feed</h1>
-                {{if .Activities}}
                 <button id="createExpressionBtn" class="btn-primary">Create Expression</button>
-                {{end}}
             </div>
-
-            <div class="feed-content">
-                <!-- Sidebar -->
-                <div class="feed-sidebar">
-                    <div class="user-info">
-                        <div id="networkInfo"></div>
+            {{if .Expressions}}
+                {{range .Expressions}}
+                <div class="feed-item">
+                    <div class="feed-item-header">
+                        <span class="creator-address">{{trimAddress .CreatorAddress}}</span>
                     </div>
-                    <div class="feed-filters">
-                        <h3>Filters</h3>
-                        <div class="filter-group">
-                            <label>Sort by</label>
-                            <select id="sortFilter">
-                                <option value="recent">Most Recent</option>
-                                <option value="popular">Most Popular</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Main Feed -->
-                <div class="feed-main">
-                    {{if .Activities}}
-                        {{range .Activities}}
-                        <div class="feed-item">
-                            <div class="feed-item-header">
-                                <div class="user-info">
-                                    <span class="user-address">{{.UserAddress}}</span>
-                                    <span class="timestamp">{{.Timestamp}}</span>
-                                </div>
-                            </div>
-                            <div class="feed-item-content">
-                                {{if .Content.text}}
-                                    <p>{{.Content.text}}</p>
-                                {{end}}
-                                <div class="media-content">
-                                    {{if .Content.image}}
-                                        <img src="/{{.Content.image}}" alt="Expression image" />
-                                    {{end}}
-                                    {{if .Content.video}}
-                                        <video controls src="/{{.Content.video}}"></video>
-                                    {{end}}
-                                    {{if .Content.audio}}
-                                        <audio controls src="/{{.Content.audio}}"></audio>
-                                    {{end}}
-                                </div>
-                            </div>
-                            <div class="feed-item-footer">
-                                {{if ne .UserAddress $.User.Address}}
-                                    <button class="btn-acknowledge" onclick="acknowledgeExpression('{{.ID}}')">
-                                        <span class="icon">👍</span> Acknowledge
-                                    </button>
-                                {{end}}
-                                <span class="acknowledgement-count">{{.AcknowledgementCount}} acknowledgements</span>
-                            </div>
+                    <div class="feed-item-content">
+                        {{.Content.text}}
+                        {{if .Content.image}}
+                        <div class="media-content">
+                            <img src="{{.Content.image}}" alt="Expression image">
                         </div>
                         {{end}}
-                    {{else}}
-                        <div class="empty-feed">
-                            <div class="empty-state">
-                                <h2>No expressions shared yet</h2>
-                                <p>Be the first to share an expression of peace!</p>
-                                <button id="createFirstExpressionBtn" class="btn-primary">Create Expression</button>
-                            </div>
+                        {{if .Content.audio}}
+                        <div class="media-content">
+                            <audio controls>
+                                <source src="{{.Content.audio}}" type="audio/webm">
+                                Your browser does not support the audio element.
+                            </audio>
                         </div>
-                    {{end}}
+                        {{end}}
+                        {{if .Content.video}}
+                        <div class="media-content">
+                            <video controls>
+                                <source src="{{.Content.video}}" type="video/webm">
+                                Your browser does not support the video element.
+                            </video>
+                        </div>
+                        {{end}}
+                    </div>
+                    <div class="feed-item-footer">
+                        {{if ne .CreatorAddress $.UserAddress}}
+                        <button class="acknowledge-button {{if .IsAcknowledged}}acknowledged{{end}} {{if gt .ActiveAcknowledgementCount 0}}has-active-acknowledgements{{end}}" data-expression-id="{{.ID}}">
+                            <svg class="heart-icon {{if .IsAcknowledged}}acknowledged{{end}}" viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                            </svg>
+                            <span class="acknowledgement-count">{{.ActiveAcknowledgementCount}}</span>
+                        </button>
+                        {{end}}
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Expression Creation Modal -->
-        <div id="createExpressionModal" class="modal-backdrop">
-            <div class="modal">
-                <button class="modal-close">&times;</button>
-                <h2> Express Yourself!</h2>
-                <form id="expressionForm">
-                    <div class="form-group">
-                        <button type="button" id="audioRecord" class="btn btn-record">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <circle cx="12" cy="12" r="6"/>
-                            </svg>
-                            Record Audio
-                        </button>
-                        <button type="button" id="videoRecord" class="btn btn-record">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M15,8v8H5V8H15 M16,6H4v12h12V6z M19,9l5-3v12l-5-3V9z"/>
-                            </svg>
-                            Record Video
-                        </button>
-                    </div>
-
-                    <div class="form-group">
-                        <button type="button" id="imageUpload" class="btn btn-upload">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6V13z"/>
-                            </svg>
-                            Upload Image
-                        </button>
-                        <input type="file" id="imageInput" name="image" accept="image/*" style="display: none">
-                    </div>
-
-                    <div class="form-group">
-                        <textarea name="textContent" placeholder="What's happening?" required></textarea>
-                    </div>
-
-                    <div class="preview" id="mediaPreview"></div>
-                    <div id="mediaError"></div>
-
-                    <button type="submit" class="btn btn-submit">
-                        Save
-                      
-                    </button>
-                </form>
-            </div>
+                {{end}}
+            {{else}}
+                <p class="no-expressions">No expressions shared yet</p>
+            {{end}}
         </div>
     </main>
 
+    <!-- Expression Creation Modal -->
+    <div id="createExpressionModal" class="modal-backdrop">
+        <div class="modal">
+            <button class="modal-close">&times;</button>
+            <h2>Express Yourself!</h2>
+            <form id="expressionForm">
+                <div class="form-group">
+                    <button type="button" id="audioRecord" class="btn btn-record">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="12" r="6"/>
+                        </svg>
+                        Record Audio
+                    </button>
+                    <button type="button" id="videoRecord" class="btn btn-record">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M15,8v8H5V8H15 M16,6H4v12h12V6z M19,9l5-3v12l-5-3V9z"/>
+                        </svg>
+                        Record Video
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <button type="button" id="imageUpload" class="btn btn-upload">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6V13z"/>
+                        </svg>
+                        Upload Image
+                    </button>
+                    <input type="file" id="imageInput" name="image" accept="image/*" style="display: none">
+                </div>
+
+                <div class="form-group">
+                    <textarea name="textContent" placeholder="What's happening?" required></textarea>
+                </div>
+
+                <div class="preview" id="mediaPreview"></div>
+                <div id="mediaError"></div>
+
+                <button type="submit" class="btn btn-submit">Save</button>
+            </form>
+        </div>
+    </div>
+
     <script src="/static/js/wallet.js"></script>
     <script src="/static/js/modal.js"></script>
-    <script>
-        // Initialize create expression buttons
-        document.getElementById('createExpressionBtn')?.addEventListener('click', () => {
-            expressionModal.open();
-        });
-        document.getElementById('createFirstExpressionBtn')?.addEventListener('click', () => {
-            expressionModal.open();
-        });
-
-        async function acknowledgeExpression(expressionId) {
-            try {
-                const response = await fetch(`/api/acknowledgements`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        expressionId: expressionId
-                    }),
-                    credentials: 'include'
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to acknowledge expression');
-                }
-
-                // Refresh the feed
-                window.location.reload();
-            } catch (error) {
-                console.error('Error acknowledging expression:', error);
-                alert(error.message);
-            }
-        }
-    </script>
+    <script src="/static/js/feed.js"></script>
 </body>
 </html> 

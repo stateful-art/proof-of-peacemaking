@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"log"
+	"proofofpeacemaking/internal/core/domain"
 	"proofofpeacemaking/internal/core/ports"
 )
 
@@ -25,44 +25,40 @@ func NewFeedService(
 }
 
 func (s *feedService) GetFeed(ctx context.Context) ([]map[string]interface{}, error) {
+	// Get all expressions
 	expressions, err := s.expressionService.List(ctx)
 	if err != nil {
-		log.Printf("[FEED] Error listing expressions: %v", err)
 		return nil, err
 	}
 
-	var activities []map[string]interface{}
+	// Convert expressions to feed items
+	var feedItems []map[string]interface{}
 	for _, expr := range expressions {
-		if expr == nil {
-			log.Printf("[FEED] Skipping nil expression")
-			continue
-		}
-
-		// Get acknowledgment count
+		// Get acknowledgements for this expression
 		acks, err := s.acknowledgementService.ListByExpression(ctx, expr.ID.Hex())
-		ackCount := 0
 		if err != nil {
-			log.Printf("[FEED] Error getting acknowledgments for expression %s: %v", expr.ID.Hex(), err)
-		} else {
-			ackCount = len(acks)
+			return nil, err
 		}
 
-		activity := map[string]interface{}{
-			"ID":                   expr.ID.Hex(),
-			"UserAddress":          expr.CreatorAddress,
-			"Content":              expr.Content,
-			"Timestamp":            expr.CreatedAt,
-			"AcknowledgementCount": ackCount,
+		// Count active acknowledgements
+		activeCount := 0
+		for _, ack := range acks {
+			if ack.Status == domain.AcknowledgementStatusActive {
+				activeCount++
+			}
 		}
 
-		activities = append(activities, activity)
+		// Convert ObjectID to hex string for template
+		feedItem := map[string]interface{}{
+			"ID":                         expr.ID.Hex(),
+			"CreatorAddress":             expr.CreatorAddress,
+			"Content":                    expr.Content,
+			"Timestamp":                  expr.CreatedAt,
+			"Acknowledgements":           acks,
+			"ActiveAcknowledgementCount": activeCount,
+		}
+		feedItems = append(feedItems, feedItem)
 	}
 
-	if len(activities) == 0 {
-		log.Printf("[FEED] No activities found")
-	} else {
-		log.Printf("[FEED] Found %d activities", len(activities))
-	}
-
-	return activities, nil
+	return feedItems, nil
 }
