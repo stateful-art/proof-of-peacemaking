@@ -77,7 +77,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	feedHandler := handlers.NewFeedHandler(h.Feed.GetFeedService(), h.User.GetUserService())
 
 	// Create account handler
-	accountHandler := handlers.NewAccountHandler(h.User.GetUserService())
+	accountHandler := handlers.NewAccountHandler(h.User.GetUserService(), h.Auth.GetAuthService())
 
 	// Create newsletter handler
 	newsletterHandler := handlers.NewNewsletterHandler(h.Newsletter.GetNewsletterService())
@@ -102,6 +102,8 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	app.Get("/auth/session", h.Auth.GetSession)
 	app.Post("/auth/verify", h.Auth.VerifySignature)
 	app.Post("/auth/register", h.Auth.Register)
+	app.Post("/auth/register-email", h.Auth.RegisterWithEmail)
+	app.Post("/auth/login-email", h.Auth.LoginWithEmail)
 	app.Post("/auth/logout", h.Auth.Logout)
 
 	// Protected routes
@@ -142,4 +144,5 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	users := api.Group("/users")
 	users.Put("/profile", accountHandler.UpdateProfile)
 	users.Post("/connect-wallet", accountHandler.ConnectWallet)
+	users.Post("/wallet-nonce", accountHandler.GetWalletNonce)
 }

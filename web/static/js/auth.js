@@ -80,22 +80,37 @@ function switchAuthMode(mode) {
 // Form submission handlers
 async function handleEmailLogin(event) {
     event.preventDefault();
+    console.log('Login form submitted');
+    
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
 
+    console.log('Login form data:', { email }); // Don't log password
+
+    if (!email || !password) {
+        alert('Please fill in all fields');
+        return;
+    }
+
     try {
-        const response = await fetch('/auth/login', {
+        console.log('Sending login request...');
+        const response = await fetch('/auth/login-email', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ email, password }),
+            credentials: 'include'
         });
 
+        console.log('Login response status:', response.status);
+        
         if (response.ok) {
+            console.log('Login successful, reloading page...');
             window.location.reload();
         } else {
             const data = await response.json();
+            console.error('Login failed:', data.error);
             alert(data.error || 'Login failed');
         }
     } catch (error) {
@@ -106,27 +121,60 @@ async function handleEmailLogin(event) {
 
 async function handleEmailRegister(event) {
     event.preventDefault();
+    console.log('Register form submitted');
+    
     const email = document.getElementById('registerEmail').value;
     const password = document.getElementById('registerPassword').value;
+    const username = document.getElementById('registerUsername').value;
+    const errorDiv = document.getElementById('registerError');
+
+    // Clear any previous error
+    errorDiv.style.display = 'none';
+    errorDiv.textContent = '';
+
+    console.log('Register form data:', { email, username }); // Don't log password
+
+    if (!email || !password || !username) {
+        errorDiv.textContent = 'Please fill in all fields';
+        errorDiv.style.display = 'block';
+        return;
+    }
 
     try {
-        const response = await fetch('/auth/register', {
+        console.log('Sending registration request...');
+        const response = await fetch('/auth/register-email', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ 
+                email, 
+                password,
+                username 
+            }),
+            credentials: 'include'
         });
 
+        console.log('Registration response status:', response.status);
+        
         if (response.ok) {
+            console.log('Registration successful, reloading page...');
             window.location.reload();
         } else {
             const data = await response.json();
-            alert(data.error || 'Registration failed');
+            console.error('Registration failed:', data.error);
+            // Show error in form
+            if (data.error === 'Email already registered' || data.error === 'Username already taken') {
+                errorDiv.textContent = 'Username or email address already registered';
+            } else {
+                errorDiv.textContent = data.error || 'Registration failed';
+            }
+            errorDiv.style.display = 'block';
         }
     } catch (error) {
         console.error('Registration error:', error);
-        alert('Registration failed. Please try again.');
+        errorDiv.textContent = 'Registration failed. Please try again.';
+        errorDiv.style.display = 'block';
     }
 }
 

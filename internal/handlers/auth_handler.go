@@ -194,3 +194,105 @@ func (h *AuthHandler) GetSession(c *fiber.Ctx) error {
 func (h *AuthHandler) GetAuthService() ports.AuthService {
 	return h.authService
 }
+
+func (h *AuthHandler) RegisterWithEmail(c *fiber.Ctx) error {
+	var body struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Username string `json:"username"`
+	}
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	// Validate required fields
+	if body.Email == "" || body.Password == "" || body.Username == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Email, password and username are required",
+		})
+	}
+
+	user, token, err := h.authService.RegisterWithEmail(c.Context(), body.Email, body.Password, body.Username)
+	if err != nil {
+		// Check for specific error cases
+		switch err.Error() {
+		case "email already registered":
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"error": "Email already registered",
+			})
+		case "username already taken":
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"error": "Username already taken",
+			})
+		default:
+			log.Printf("[AUTH] Registration error: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+	}
+
+	// Set secure HTTP-only cookie
+	cookie := fiber.Cookie{
+		Name:     "session",
+		Value:    token,
+		Path:     "/",
+		MaxAge:   24 * 60 * 60, // 24 hours
+		Secure:   true,         // Only send over HTTPS
+		HTTPOnly: true,         // Prevent JavaScript access
+		SameSite: "Strict",     // CSRF protection
+	}
+	c.Cookie(&cookie)
+
+	return c.JSON(fiber.Map{
+		"user":     user,
+		"redirect": "/feed",
+	})
+}
+
+func (h *AuthHandler) LoginWithEmail(c *fiber.Ctx) error {
+	var body struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	// Validate required fields
+	if body.Email == "" || body.Password == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Email and password are required",
+		})
+	}
+
+	user, token, err := h.authService.LoginWithEmail(c.Context(), body.Email, body.Password)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid email or password",
+		})
+	}
+
+	// Set secure HTTP-only cookie
+	cookie := fiber.Cookie{
+		Name:     "session",
+		Value:    token,
+		Path:     "/",
+		MaxAge:   24 * 60 * 60, // 24 hours
+		Secure:   true,         // Only send over HTTPS
+		HTTPOnly: true,         // Prevent JavaScript access
+		SameSite: "Strict",     // CSRF protection
+	}
+	c.Cookie(&cookie)
+
+	return c.JSON(fiber.Map{
+		"user":     user,
+		"redirect": "/feed",
+	})
+}

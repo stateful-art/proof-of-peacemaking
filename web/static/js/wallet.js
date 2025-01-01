@@ -58,7 +58,13 @@ async function checkSession() {
         if (enterButton) {
             enterButton.innerHTML = 'Enter';
             enterButton.className = 'action-button';
-            // Don't set onclick here, it will be handled by auth.js
+            // Add click handler for auth modal
+            enterButton.onclick = () => {
+                const authModal = document.getElementById('authModal');
+                if (authModal) {
+                    authModal.classList.add('active');
+                }
+            };
         }
         
         return false;
@@ -72,46 +78,91 @@ async function checkSession() {
 async function connectWallet() {
     try {
         // Check if already connected
-        if (isMetaMaskConnected) {
-            updateStepStatus('error', 'Wallet connection already pending. Please check MetaMask.', '#FFFFFF');
-            return;
+        if (window.isMetaMaskConnected) {
+            throw new Error('Wallet connection already pending. Please check MetaMask.');
         }
 
         // Check if MetaMask is installed
         if (!window.ethereum) {
-            updateStepStatus('error', 'Please install MetaMask to continue.', '#FFFFFF');
-            return;
+            throw new Error('Please install MetaMask to continue.');
         }
 
         // Request account access
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (accounts.length === 0) {
-            updateStepStatus('error', 'No accounts found. Please connect your wallet.', '#FFFFFF');
-            return;
+            throw new Error('No accounts found. Please connect your wallet.');
         }
 
+        const address = accounts[0];
+
+        // Get nonce for the wallet
+        const nonceResponse = await fetch('/api/users/wallet-nonce', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ address }),
+        });
+
+        if (!nonceResponse.ok) {
+            throw new Error('Failed to get nonce for wallet verification');
+        }
+
+        const { nonce } = await nonceResponse.json();
+
         // Set connection state
-        isMetaMaskConnected = true;
-        
-        // Start the authentication process
-        await startWalletConnection();
-        
-        updateStepStatus('success', 'Wallet connected successfully', '#90EE90');
+        window.isMetaMaskConnected = true;
+
+        // Request signature
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const signature = await signer.signMessage(
+            `Welcome to Proof of Peacemaking!\n\nPlease sign this message to verify you own this wallet.\n\nNonce: ${nonce}`
+        );
+
+        // Verify signature and connect wallet
+        const response = await fetch('/api/users/connect-wallet', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                address,
+                signature,
+                nonce
+            }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            throw new Error(data.error || 'Failed to connect wallet');
+        }
     } catch (error) {
         console.error('Error connecting wallet:', error);
-        isMetaMaskConnected = false;
-        updateStepStatus('error', error.message || 'Failed to connect wallet', '#FFFFFF');
+        window.isMetaMaskConnected = false;
+        throw error; // Re-throw to be handled by the caller
     }
 }
 
 // Add disconnect function
 async function disconnectWallet() {
     try {
-        await handleMetaMaskDisconnect();
-        updateStepStatus('success', 'Wallet disconnected successfully', '#90EE90');
+        // Just call logout endpoint, no need to update wallet status for email auth
+        const response = await fetch('/auth/logout', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            throw new Error('Failed to logout');
+        }
     } catch (error) {
-        console.error('Error disconnecting wallet:', error);
-        updateStepStatus('error', error.message || 'Failed to disconnect wallet', '#FFFFFF');
+        console.error('Error during logout:', error);
+        window.location.reload(); // Reload anyway to ensure clean state
     }
 }
 
@@ -128,7 +179,13 @@ function updateWalletButton(address) {
         // If no address, set up the Enter button
         walletButton.innerHTML = 'Enter';
         walletButton.className = 'action-button';
-        walletButton.onclick = openAuthModal;
+        // Add click handler for auth modal
+        walletButton.onclick = () => {
+            const authModal = document.getElementById('authModal');
+            if (authModal) {
+                authModal.classList.add('active');
+            }
+        };
         return;
     }
 
@@ -225,6 +282,19 @@ window.onclick = function(event) {
     }
 }
 
+// Handle wallet connection for account page
+window.startWalletConnection = async function() {
+    try {
+        await connectWallet();
+    } catch (error) {
+        // Dispatch wallet error event for the account page
+        const errorEvent = new CustomEvent('walletError', {
+            detail: { message: error.message || 'Error connecting wallet' }
+        });
+        window.dispatchEvent(errorEvent);
+    }
+}
+
 // Update the event listeners
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Wallet.js DOMContentLoaded event fired');
@@ -238,44 +308,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (enterButton && !enterButton.getAttribute('data-initialized')) {
             enterButton.innerHTML = 'Enter';
             enterButton.className = 'action-button';
-            // Mark as initialized to prevent double initialization
-            enterButton.setAttribute('data-initialized', 'true');
+            // Add click handler for auth modal
+            enterButton.onclick = () => {
+                const authModal = document.getElementById('authModal');
+                if (authModal) {
+                    authModal.classList.add('active');
+                }
+            };
         }
-    } else {
-        // User is already connected
-        const authModal = document.getElementById('authModal');
-        if (authModal) {
-            authModal.classList.remove('active');
-        }
-
-        // Setup click handlers for existing user icon if present
-        const existingDropdown = document.querySelector('.user-dropdown');
-        if (existingDropdown) {
-            setupUserIconHandlers(existingDropdown);
-        }
-    }
-
-    // Listen for account changes
-    if (window.ethereum) {
-        window.ethereum.on('accountsChanged', async function (accounts) {
-            if (accounts.length === 0) {
-                // User disconnected their wallet
-                await disconnectWallet();
-            } else {
-                // User switched accounts, re-authenticate
-                isConnected = false;
-                currentAddress = null;
-                await connectWallet();
-            }
-        });
-
-        // Listen for chain changes
-        window.ethereum.on('chainChanged', async function() {
-            // Handle chain change by re-authenticating
-            isConnected = false;
-            currentAddress = null;
-            await disconnectWallet();
-            await connectWallet();
-        });
     }
 }); 

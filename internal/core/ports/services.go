@@ -22,6 +22,8 @@ type AuthService interface {
 	GenerateNonce(ctx context.Context, address string) (int, error)
 	VerifySignature(ctx context.Context, address string, signature string) (bool, string, error)
 	Register(ctx context.Context, address string, email string) (*domain.User, string, error)
+	RegisterWithEmail(ctx context.Context, email string, password string, username string) (*domain.User, string, error)
+	LoginWithEmail(ctx context.Context, email string, password string) (*domain.User, string, error)
 	VerifyToken(ctx context.Context, token string) (string, error)
 	Logout(ctx context.Context, token string) error
 }
@@ -56,6 +58,7 @@ type FeedService interface {
 type UserService interface {
 	Create(ctx context.Context, user *domain.User) error
 	Update(ctx context.Context, user *domain.User) error
+	GetUserByID(ctx context.Context, id primitive.ObjectID) (*domain.User, error)
 	GetUserByAddress(ctx context.Context, address string) (*domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetUserByUsername(ctx context.Context, username string) (*domain.User, error)

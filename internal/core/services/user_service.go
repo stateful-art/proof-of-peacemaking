@@ -45,3 +45,7 @@ func (s *userService) ConnectWallet(ctx context.Context, userID primitive.Object
 func (s *userService) GetUserByUsername(ctx context.Context, username string) (*domain.User, error) {
 	return s.userRepo.GetByUsername(ctx, username)
 }
+
+func (s *userService) GetUserByID(ctx context.Context, id primitive.ObjectID) (*domain.User, error) {
+	return s.userRepo.GetByID(ctx, id.Hex())
+}

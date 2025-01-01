@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type authService struct {
@@ -49,19 +50,27 @@ func (s *authService) GenerateNonce(ctx context.Context, address string) (int, e
 	}
 	nonce := int(n.Int64())
 
-	// Find or create user
+	// Find user
 	user, err := s.userService.GetUserByAddress(ctx, address)
 	if err != nil {
 		log.Printf("[AUTH] Error finding user: %v", err)
 		return 0, fmt.Errorf("failed to find user: %w", err)
 	}
 
-	if user == nil {
-		log.Printf("[AUTH] Creating new user for address: %s", address)
+	// If user exists, update their nonce
+	if user != nil {
+		log.Printf("[AUTH] Found existing user with ID: %s", user.ID.Hex())
+		if err := s.userService.UpdateNonce(ctx, user.ID, nonce); err != nil {
+			log.Printf("[AUTH] Error updating nonce: %v", err)
+			return 0, fmt.Errorf("failed to update nonce: %w", err)
+		}
+		log.Printf("[AUTH] Updated nonce to %d for user %s", nonce, user.ID.Hex())
+	} else {
 		// Create new user if not exists
 		user = &domain.User{
 			ID:        primitive.NewObjectID(),
 			Address:   address,
+			Nonce:     nonce,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
@@ -69,17 +78,8 @@ func (s *authService) GenerateNonce(ctx context.Context, address string) (int, e
 			log.Printf("[AUTH] Error creating user: %v", err)
 			return 0, fmt.Errorf("failed to create user: %w", err)
 		}
-		log.Printf("[AUTH] Created new user with ID: %s", user.ID.Hex())
-	} else {
-		log.Printf("[AUTH] Found existing user with ID: %s", user.ID.Hex())
+		log.Printf("[AUTH] Created new user with ID: %s and nonce: %d", user.ID.Hex(), nonce)
 	}
-
-	// Update user's nonce
-	if err := s.userService.UpdateNonce(ctx, user.ID, nonce); err != nil {
-		log.Printf("[AUTH] Error updating nonce: %v", err)
-		return 0, fmt.Errorf("failed to update nonce: %w", err)
-	}
-	log.Printf("[AUTH] Updated nonce to %d for user %s", nonce, user.ID.Hex())
 
 	return nonce, nil
 }
@@ -165,7 +165,7 @@ func (s *authService) VerifySignature(ctx context.Context, address string, signa
 		ID:        primitive.NewObjectID(),
 		UserID:    user.ID,
 		Token:     sessionToken,
-		Address:   address, // Add address to session
+		Address:   address,
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
@@ -241,12 +241,31 @@ func (s *authService) VerifyToken(ctx context.Context, token string) (string, er
 		log.Printf("[AUTH] Session expired")
 		return "", fmt.Errorf("session expired")
 	}
-	if session.Address == "" {
-		log.Printf("[AUTH] Session has no address")
-		return "", fmt.Errorf("invalid session: no address")
+
+	// Get user from session
+	user, err := s.userService.GetUserByID(ctx, session.UserID)
+	if err != nil {
+		log.Printf("[AUTH] Error finding user: %v", err)
+		return "", fmt.Errorf("failed to find user: %w", err)
 	}
-	log.Printf("[AUTH] Session verified for address: %s", session.Address)
-	return session.Address, nil
+	if user == nil {
+		log.Printf("[AUTH] User not found")
+		return "", fmt.Errorf("invalid session: user not found")
+	}
+
+	// For wallet auth, return address
+	if session.Address != "" {
+		log.Printf("[AUTH] Session verified for wallet address: %s", session.Address)
+		return session.Address, nil
+	}
+
+	// For email auth, return email
+	if user.Email != "" {
+		log.Printf("[AUTH] Session verified for email: %s", user.Email)
+		return user.Email, nil
+	}
+
+	return "", fmt.Errorf("invalid session: no authentication method found")
 }
 
 func (s *authService) Logout(ctx context.Context, token string) error {
@@ -269,4 +288,94 @@ func (s *authService) Logout(ctx context.Context, token string) error {
 	}
 
 	return nil
+}
+
+func (s *authService) RegisterWithEmail(ctx context.Context, email string, password string, username string) (*domain.User, string, error) {
+	// Check if email already exists
+	existingUser, _ := s.userService.GetUserByEmail(ctx, email)
+	if existingUser != nil {
+		return nil, "", fmt.Errorf("email already registered")
+	}
+
+	// Check if username already exists
+	existingUser, _ = s.userService.GetUserByUsername(ctx, username)
+	if existingUser != nil {
+		return nil, "", fmt.Errorf("username already taken")
+	}
+
+	// Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, "", fmt.Errorf("error hashing password")
+	}
+
+	// Create user
+	user := &domain.User{
+		ID:        primitive.NewObjectID(),
+		Email:     email,
+		Username:  username,
+		Password:  string(hashedPassword),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	if err := s.userService.Create(ctx, user); err != nil {
+		return nil, "", fmt.Errorf("error creating user: %v", err)
+	}
+
+	// Create session
+	sessionToken, err := generateSecureToken()
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate session token")
+	}
+
+	session := &domain.Session{
+		ID:        primitive.NewObjectID(),
+		UserID:    user.ID,
+		Token:     sessionToken,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	}
+
+	if err := s.sessionRepo.Create(ctx, session); err != nil {
+		return nil, "", fmt.Errorf("failed to create session")
+	}
+
+	return user, sessionToken, nil
+}
+
+func (s *authService) LoginWithEmail(ctx context.Context, email string, password string) (*domain.User, string, error) {
+	// Get user by email
+	user, err := s.userService.GetUserByEmail(ctx, email)
+	if err != nil {
+		return nil, "", fmt.Errorf("invalid email or password")
+	}
+
+	// Verify password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return nil, "", fmt.Errorf("invalid email or password")
+	}
+
+	// Create session
+	sessionToken, err := generateSecureToken()
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate session token")
+	}
+
+	session := &domain.Session{
+		ID:        primitive.NewObjectID(),
+		UserID:    user.ID,
+		Token:     sessionToken,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	}
+
+	if err := s.sessionRepo.Create(ctx, session); err != nil {
+		return nil, "", fmt.Errorf("failed to create session")
+	}
+
+	return user, sessionToken, nil
 }

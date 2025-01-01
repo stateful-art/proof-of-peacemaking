@@ -10,10 +10,35 @@
     <link rel="stylesheet" href="/static/css/navbar.css">
     <link rel="stylesheet" href="/static/css/account.css">
     <script type="module" src="/static/js/ethers-init.js"></script>
+    <style>
+        .btn-metamask {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px;
+            background-color: #fff;
+            color: #24292e;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-metamask:hover {
+            background-color: #f6f8fa;
+            border-color: #d1d5da;
+        }
+        .btn-metamask img {
+            width: 24px;
+            height: 24px;
+        }
+    </style>
 </head>
 <body class="dark-mode">
     {{ template "navbar" . }}
-
 
     <main class="main-content">
         <div class="account-container">
@@ -43,9 +68,13 @@
                 </div>
 
                 {{if not .User.Address}}
-                <div class="form-group">
+                <div class="form-group wallet-section">
                     <label>Wallet</label>
-                    <button type="button" id="connectWalletBtn" class="btn-connect">Connect Wallet</button>
+                    <button type="button" class="btn-metamask" onclick="startWalletConnection()">
+                        <img src="/static/img/metamask.svg" alt="MetaMask">
+                        Connect your wallet
+                    </button>
+                    <div id="walletError" class="error-message" style="display: none; color: #ff4444; margin: 8px 0; text-align: center;"></div>
                 </div>
                 {{else}}
                 <div class="form-group">
@@ -70,7 +99,21 @@
                 window.location.href = '/';
             }
         }
+
+        function showWalletError(message) {
+            const errorDiv = document.getElementById('walletError');
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // Listen for wallet connection errors
+        window.addEventListener('walletError', function(e) {
+            showWalletError(e.detail.message);
+        });
     </script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
     <script src="/static/js/wallet.js"></script>
     <script src="/static/js/account.js"></script>
 </body>
