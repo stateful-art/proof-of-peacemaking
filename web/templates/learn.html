@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+    <title>Learn - Proof of Peacemaking</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <link rel="stylesheet" href="/static/css/learn.css">
+    <link rel="stylesheet" href="/static/css/auth-modal.css">
+    <script type="module" src="/static/js/ethers-init.js"></script>
+</head>
+<body>
+    {{ template "navbar" . }}
+    
+    <div class="hero">
+        <div class="container">
+            <h1>Reimagining Social Interactions</h1>
+            <p class="hero-quote">
+                Every like, every share, every connection can be an act of peace. We're transforming everyday digital interactions into meaningful steps toward global recognition and understanding.
+            </p>
+        </div>
+    </div>
+
+    <div class="split-section">
+        <div class="split-content black">
+            <h2>Micro-Actions for Peace</h2>
+            <p>
+                What if your everyday social interactions could build a foundation for world peace? We're repurposing familiar social media actions into meaningful diplomatic gestures between people.
+            Here,                 each expression you share, each acknowledgment you make, generates proof of your commitment to peace and recognition of others' citizenship rights.
+
+            </p>
+          
+        </div>
+        <div class="image-placeholder">
+            <img src="/static/img/micro-actions.webp" alt="Digital peace interactions" />
+        </div>
+    </div>
+
+    <div class="flow-section">
+        <div class="container">
+            <h2>From Social to Diplomatic</h2>
+            <p class="flow-intro">
+                We're transforming everyday social media actions into powerful tools for peace and recognition. Each interaction creates verifiable proof of your peacemaking efforts.
+            </p>
+            
+            <div class="flow-steps">
+                <div class="flow-step">
+                    <h3>Post → Expression</h3>
+                    <p>Your posts become formal expressions of peace, documented and verifiable on the blockchain.</p>
+                    <div class="actions">Express Peace</div>
+                </div>
+                
+                <div class="flow-step">
+                    <h3>Like → Acknowledge</h3>
+                    <p>Your likes become official acknowledgments of others' expressions and citizenship claims.</p>
+                    <div class="actions">Recognize</div>
+                </div>
+                
+                <div class="flow-step">
+                    <h3>Connect → Collab</h3>
+                    <p>Your connections and recognition opens the door to collaboration on the UN Sustainable Development Goals.</p>
+                    <div class="actions">Get funded</div>
+                    <span class="coming-soon">soon</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="split-section">
+        <div class="split-content blue">
+            <h2>Proof of Peacemaking</h2>
+            <p>
+                Every interaction generates on-demand, consensus-based documentation of your peacemaking efforts. These become immutable proofs of your contribution to global peace and recognition.
+            </p>
+            <p>
+                This isn't just social media - it's diplomatic infrastructure for the digital age, powered by blockchain technology and driven by people like you.
+            </p>
+        </div>
+        <div class="split-content">
+            <img src="/static/img/free-palestine.png" alt="Peace" style="width: 100%; height: auto; margin-bottom: 20px;">
+            <a href="#" class="cta-button" onclick="openAuthModal(); return false;">Start Peacemaking</a>
+        </div>
+    </div>
+
+    {{ template "footer" . }}
+    {{ template "auth_modal" . }}
+
+    <script src="/static/js/wallet.js"></script>
+    <script src="/static/js/auth.js"></script>
+</body>
+</html>
