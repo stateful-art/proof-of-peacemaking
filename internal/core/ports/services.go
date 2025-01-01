@@ -62,3 +62,7 @@ type UserService interface {
 	UpdateNonce(ctx context.Context, id primitive.ObjectID, nonce int) error
 	ConnectWallet(ctx context.Context, userID primitive.ObjectID, address string) error
 }
+
+type NewsletterService interface {
+	SendContactEmail(ctx context.Context, who string) error
+}

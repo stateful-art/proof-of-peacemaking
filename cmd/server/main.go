@@ -16,10 +16,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html/v2"
 	"github.com/joho/godotenv"
+	"github.com/mailgun/mailgun-go/v4"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func initServices(db *mongo.Database) (
+func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl) (
 	ports.NotificationService,
 	ports.AuthService,
 	ports.ExpressionService,
@@ -27,6 +28,7 @@ func initServices(db *mongo.Database) (
 	ports.ProofNFTService,
 	ports.FeedService,
 	ports.UserService,
+	ports.NewsletterService,
 ) {
 	// Initialize repositories
 	userRepo := mongodb.NewUserRepository(db)
@@ -44,8 +46,8 @@ func initServices(db *mongo.Database) (
 	notificationService := services.NewNotificationService(notificationRepo, userRepo)
 	proofNFTService := services.NewProofNFTService(userRepo, proofNFTRepo)
 	feedService := services.NewFeedService(expressionService, userService, acknowledgementService)
-
-	return notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService
+	newsletterService := services.NewNewsletterService(mailgunClient)
+	return notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService, newsletterService
 }
 
 func getProjectRoot() string {
@@ -56,9 +58,9 @@ func getProjectRoot() string {
 func setupHandlers(app *fiber.App) *handlers.Handlers {
 	// Setup MongoDB connection
 	db := mongodb.Connect()
-
+	mailgunClient := getMailgunClient()
 	// Initialize services
-	notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService := initServices(db)
+	notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService, newsletterService := initServices(db, mailgunClient)
 
 	// Create handlers
 	h := handlers.NewHandlers(
@@ -69,10 +71,11 @@ func setupHandlers(app *fiber.App) *handlers.Handlers {
 		proofNFTService,
 		feedService,
 		userService,
+		newsletterService,
 	)
 
 	// Setup routes with user service for feed handler
-	routes.SetupRoutes(app, h, userService)
+	routes.SetupRoutes(app, h)
 
 	return h
 }
@@ -162,4 +165,10 @@ func getPort() string {
 func startServer(app *fiber.App) {
 	port := getPort()
 	log.Fatal(app.Listen(port))
+}
+
+func getMailgunClient() *mailgun.MailgunImpl {
+	var domain string = os.Getenv("EMAIL_SENDER_DOMAIN")
+	var key string = os.Getenv("MAILGUN_APIKEY")
+	return mailgun.NewMailgun(domain, key)
 }

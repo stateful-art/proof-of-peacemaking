@@ -12,7 +12,6 @@
     padding: 8rem 0;
     background-color: var(--bg-primary);
     text-align: center;
-    /* border-bottom: 2px solid var(--border-color); */
 }
 
 .hero h1 {
@@ -46,6 +45,7 @@
     flex-direction: column;
     justify-content: center;
     position: relative;
+    background: var(--bg-primary);
 }
 
 .split-content .learn-more,
@@ -74,7 +74,9 @@
 
 .split-content .cta-button {
     background: var(--bg-primary);
-    color: var(--text-primary);
+    color: white;
+    border-left: 1px solid white !important;
+    border-top: 1px solid white !important;
 }
 
 .split-content .learn-more:hover {
@@ -82,8 +84,8 @@
 }
 
 .split-content .cta-button:hover {
-    background: #000;
-    color: white;
+    background: white;
+    color: black;
 }
 
 .split-content h2 {
@@ -123,49 +125,6 @@
     background: var(--bg-red);
 }
 
-/* Event Links */
-.event-links {
-    display: flex;
-    width: 100%;
-}
-
-.event-link {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 25%;
-    padding: 2rem;
-    color: var(--text-primary);
-    text-decoration: none;
-    font-size: 1.2rem;
-    font-weight: 500;
-    transition: opacity 0.2s ease;
-}
-
-.event-link:nth-child(1) {
-    background: var(--error-color);
-}
-
-.event-link:nth-child(2) {
-    background: var(--bg-secondary);
-}
-
-.event-link:nth-child(3) {
-    background: var(--accent-color);
-}
-
-.event-link:nth-child(4) {
-    background: var(--bg-primary);
-}
-
-.event-link:hover {
-    opacity: 0.9;
-}
-
-.event-link-light {
-    color: var(--bg-primary);
-}
-
 /* Image Placeholders */
 .image-placeholder {
     background: var(--bg-secondary);
@@ -182,198 +141,27 @@
     object-fit: cover;
 }
 
-/* Footer */
-.footer {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    padding: 4rem 0 2rem;
-}
-
-.footer .container {
-    max-width: 100% !important;
-    padding: 0 10rem;
-}
-
-.footer-content {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 4rem;
-    margin-bottom: 3rem;
-}
-
-.newsletter {
-    padding-right: 2rem;
-}
-
-.newsletter h3 {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-}
-
-.newsletter-form {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
-
-.newsletter-form input {
-    flex: 1;
-    padding: 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-}
-
-.newsletter-form button {
-    padding: 0.75rem 1.5rem;
-    background: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.footer-links {
-    display: grid;
-    grid-template-columns: repeat(1, 1fr);
-    gap: 4rem;
-    justify-content: center;
-    margin-left: auto;
-    padding-left: 0;
-}
-
-.link-group {
-    text-align: left;
-    min-width: 160px;
-}
-
-.link-group h4 {
-    margin-bottom: 1rem;
-    white-space: nowrap;
-}
-
-.link-group a {
-    display: block;
-    color: var(--text-primary);
-    text-decoration: none;
-    margin-bottom: 0.5rem;
-    opacity: 0.8;
-}
-
-.footer-bottom {
-    padding-top: 2rem;
-    border-top: 1px solid var(--border-color);
-    text-align: center;
-}
-
-.footer-brand {
-    text-decoration: none;
-    color: inherit;
-}
-
-.footer-brand-st {
-    color: var(--text-primary);
-}
-
-.footer-brand-art {
-    color: var(--error-color);
-}
-
-/* Navigation */
-.nav-auth-items {
-    display: none;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .hero h1 {
-        font-size: 4rem;
-    }
-
-    .hero {
-        padding: 4rem 0;
-    }
-
-    .split-section {
-        grid-template-columns: 1fr;
-        min-height: auto;
-    }
-
-    .split-content {
-        padding: 3rem 2rem;
-    }
-
-    .split-content h2 {
-        font-size: 3rem;
-    }
-
-    .split-content p {
-        font-size: 1.4rem;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-    }
-
-    .image-placeholder {
-        min-height: 300px;
-    }
-
-    .footer-content {
-        grid-template-columns: 1fr;
-    }
-
-    .footer-links {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .footer .container {
-        padding: 0 2rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .event-links {
-        flex-wrap: wrap;
-    }
-
-    .event-link {
-        width: 50%;
-        padding: 1.5rem;
-        font-size: 1rem;
-    }
-
-    .footer-links {
-        grid-template-columns: 1fr;
-        padding-left: 0;
-        margin-left: 0;
-    }
-
-    .newsletter-form {
-        flex-direction: column;
-    }
-}
-
 /* Flow Section */
 .flow-section {
-    padding: 6rem 0;
+    padding: 4rem 0 6rem;
     background: var(--bg-primary);
-    color: var(--text-primary);
 }
 
 .flow-section h2 {
-    font-size: 4rem;
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
     text-align: center;
-    margin-bottom: 2rem;
     font-family: var(--font-display);
 }
 
 .flow-intro {
+    font-size: 2rem;
+    line-height: 1.4;
     max-width: 800px;
     margin: 0 auto 4rem;
     text-align: center;
-    font-size: 1.8rem;
-    line-height: 1.4;
-    color: var(--text-secondary);
+    color: white;
+    font-family: var(--font-display);
 }
 
 .flow-steps {
@@ -382,7 +170,6 @@
     gap: 2rem;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 2rem;
 }
 
 .flow-step {
@@ -400,14 +187,13 @@
 }
 
 .flow-step p {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     line-height: 1.5;
+    margin-bottom: 2rem;
     color: var(--text-secondary);
-    margin-bottom: 1.5rem;
 }
 
 .flow-step .actions {
-    font-size: 1rem;
     color: var(--accent-color);
     font-weight: 500;
 }
@@ -416,16 +202,16 @@
     position: absolute;
     top: 1rem;
     right: 1rem;
+    background: var(--accent-color);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
     font-size: 0.8rem;
-    color: var(--text-secondary);
-    background: var(--bg-primary);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    text-transform: uppercase;
 }
 
-/* Steps List */
 .steps-list {
-    margin-bottom: 2rem;
+    margin-top: 2rem;
 }
 
 .steps-list .step {
@@ -439,13 +225,14 @@
 }
 
 .steps-list .step p {
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: var(--text-secondary);
+    margin: 0;
 }
 
-/* Content Styles */
 .split-content blockquote {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
+    line-height: 1.6;
     font-style: italic;
     margin: 2rem 0;
     padding-left: 2rem;
@@ -453,18 +240,108 @@
     color: var(--text-secondary);
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
+
     .flow-steps {
         grid-template-columns: 1fr;
     }
 
+    .flow-section {
+        padding: 3rem 0 5rem;
+    }
+
     .flow-section h2 {
-        font-size: 3rem;
+        font-size: 2.5rem;
     }
 
     .flow-intro {
-        font-size: 1.4rem;
+        font-size: 1.6rem;
         padding: 0 2rem;
+        margin: 0 auto 3rem;
+    }
+
+    .hero h1 {
+        font-size: 3rem;
+    }
+
+    .hero {
+        padding: 8rem 0 4rem;
+    }
+
+    .split-section {
+        grid-template-columns: 1fr;
+    }
+
+    .split-content {
+        padding: 3rem 2rem;
+    }
+
+    .split-content h2 {
+        font-size: 3rem;
+    }
+
+    .split-content p {
+        font-size: 1.4rem;
+    }
+
+    .image-placeholder {
+        min-height: 300px;
+    }
+}
+
+@media (max-width: 600px) {
+    .split-content {
+        padding: 3rem 2rem 7rem;
+    }
+
+    .split-content p {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+    }
+
+    .split-content h2 {
+        font-size: 2.5rem;
+    }
+
+    .split-content .learn-more,
+    .split-content .cta-button {
+        position: relative;
+        margin-top: auto;
+        width: 100%;
+        justify-content: center;
+        border: 1px solid white !important;
+    }
+
+    .flow-step {
+        padding: 2rem 2rem 4rem;
+    }
+
+    .flow-step .actions {
+        position: absolute;
+        bottom: 1.5rem;
+        left: 2rem;
+    }
+
+    /* Reduce space between image and flow section */
+    .image-placeholder {
+        min-height: 200px;
+    }
+
+    .flow-section {
+        padding: 2rem 0 5rem;
+    }
+
+    .split-section + .flow-section {
+        padding-top: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .event-links {
+        flex-wrap: wrap;
+    }
+
+    .event-link {
+        width: 50%;
     }
 } 

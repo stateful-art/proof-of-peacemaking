@@ -2,7 +2,6 @@ package routes
 
 import (
 	"log"
-	"proofofpeacemaking/internal/core/ports"
 	"proofofpeacemaking/internal/handlers"
 	"proofofpeacemaking/internal/middleware"
 	"time"
@@ -11,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
-func SetupRoutes(app *fiber.App, h *handlers.Handlers, userService ports.UserService) {
+func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	// Add CORS middleware
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
@@ -59,10 +58,13 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, userService ports.UserSer
 	authMiddleware := middleware.NewAuthMiddleware(h.Auth.GetAuthService())
 
 	// Create feed handler with user service
-	feedHandler := handlers.NewFeedHandler(h.Feed.GetFeedService(), userService)
+	feedHandler := handlers.NewFeedHandler(h.Feed.GetFeedService(), h.User.GetUserService())
 
 	// Create account handler
-	accountHandler := handlers.NewAccountHandler(userService)
+	accountHandler := handlers.NewAccountHandler(h.User.GetUserService())
+
+	// Create newsletter handler
+	newsletterHandler := handlers.NewNewsletterHandler(h.Newsletter.GetNewsletterService())
 
 	// Home page (public)
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -76,6 +78,8 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, userService ports.UserSer
 			"Title": "Proof of Peacemaking",
 		}, "")
 	})
+
+	app.Post("/join-newsletter", newsletterHandler.HandleNewsletterRegistration)
 
 	// Public auth routes
 	app.Get("/auth/nonce", h.Auth.GenerateNonce)

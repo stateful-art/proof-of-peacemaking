@@ -5,10 +5,12 @@
             <div class="newsletter">
                 <h3>Join our newsletter</h3>
                 <p>Get updates on peace initiatives and community events</p>
-                <form class="newsletter-form">
-                    <input type="email" placeholder="Your email address" />
-                    <button type="submit">Subscribe</button>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="Your email address" id="newsletterEmail" required>
+                    <button type="submit" id="newsletterSubmit">Subscribe</button>
                 </form>
+                <div class="newsletter-message" id="newsletterMessage"></div>
+
             </div>
 
             <div class="footer-links">
@@ -32,4 +34,5 @@
         </div>
     </div>
 </footer>
+<script src="/static/js/mailer.js"></script>
 {{ end }}
