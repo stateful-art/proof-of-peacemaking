@@ -95,10 +95,7 @@ func main() {
 	// Get project root directory
 	projectRoot := getProjectRoot()
 
-	// Load environment variables
-	if err := godotenv.Load(filepath.Join(projectRoot, ".env")); err != nil {
-		log.Printf("Warning: .env file not found")
-	}
+	loadEnvironment(projectRoot)
 
 	// Setup template engine
 	engine := initTemplateEngine()
@@ -136,12 +133,33 @@ func main() {
 	// Setup handlers and routes
 	setupHandlers(app)
 
-	// Get port from environment variable
+	startServer(app)
+}
+
+func loadEnvironment(projectRoot string) {
+	if _, exists := os.LookupEnv("RAILWAY_ENVIRONMENT"); !exists {
+		// if err := godotenv.Load(); err != nil {
+		// 	log.Fatal("error loading .env file:", err)
+		// }
+
+		// Load environment variables
+		if err := godotenv.Load(filepath.Join(projectRoot, ".env")); err != nil {
+			log.Printf("Warning: .env file not found")
+		}
+	}
+}
+
+func getPort() string {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000"
+		port = ":3000"
+	} else {
+		port = ":" + port
 	}
+	return port
+}
 
-	log.Printf("Server starting on port %s", port)
-	log.Fatal(app.Listen(":" + port))
+func startServer(app *fiber.App) {
+	port := getPort()
+	log.Fatal(app.Listen(port))
 }
