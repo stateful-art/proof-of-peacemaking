@@ -99,8 +99,11 @@ func (s *authService) VerifySignature(ctx context.Context, address string, signa
 	}
 	log.Printf("[AUTH] Found user with ID: %s", user.ID.Hex())
 
+	// Store current nonce for verification
+	currentNonce := user.Nonce
+
 	// Create the message that was signed
-	message := fmt.Sprintf("Sign this message to verify your wallet. Nonce: %d", user.Nonce)
+	message := fmt.Sprintf("Sign this message to verify your wallet. Nonce: %d", currentNonce)
 
 	// Hash the message as Ethereum does
 	fullMessage := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message)
@@ -140,7 +143,7 @@ func (s *authService) VerifySignature(ctx context.Context, address string, signa
 		return false, "", fmt.Errorf("signature does not match address")
 	}
 
-	// Generate new nonce for next time
+	// Only update nonce after successful verification
 	max := big.NewInt(1000000)
 	n, err := rand.Int(rand.Reader, max)
 	if err != nil {

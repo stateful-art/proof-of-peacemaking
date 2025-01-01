@@ -125,6 +125,44 @@ async function handleEmailRegister(event) {
 }
 
 // Wallet connection steps
+let nonceRequestTimeout = null;
+let nonceRequestInProgress = false;
+let currentNonce = null;
+
+async function getNonceWithDebounce(address) {
+    if (nonceRequestInProgress) {
+        console.log('Nonce request already in progress');
+        return null;
+    }
+
+    // Clear any existing timeout
+    if (nonceRequestTimeout) {
+        clearTimeout(nonceRequestTimeout);
+    }
+
+    // Return a promise that resolves with the nonce
+    return new Promise((resolve, reject) => {
+        nonceRequestTimeout = setTimeout(async () => {
+            try {
+                nonceRequestInProgress = true;
+                const nonceResponse = await fetch('/auth/nonce?address=' + address);
+                if (!nonceResponse.ok) {
+                    throw new Error('Failed to get nonce');
+                }
+                const { nonce } = await nonceResponse.json();
+                currentNonce = nonce;
+                resolve(nonce);
+            } catch (error) {
+                console.error('Error getting nonce:', error);
+                reject(error);
+            } finally {
+                nonceRequestInProgress = false;
+                nonceRequestTimeout = null;
+            }
+        }, 100); // 100ms delay to debounce
+    });
+}
+
 async function startWalletConnection() {
     // Show wallet steps UI
     const modal = document.getElementById('authModal');
@@ -176,62 +214,61 @@ async function startWalletConnection() {
             const signSpinner = signStep.querySelector('.spinner');
             signSpinner.style.display = 'block';
 
-            // Get nonce
-            const nonceResponse = await fetch('/auth/nonce?address=' + address);
-            const { nonce } = await nonceResponse.json();
-
-            // Create message to sign
-            const message = `Sign this message to verify your wallet. Nonce: ${nonce}`;
-
-            // Request signature
-            const signature = await window.ethereum.request({
-                method: 'personal_sign',
-                params: [message, address],
-            });
-
-            // Verify signature
-            const verifyResponse = await fetch('/auth/verify', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    address,
-                    signature
-                }),
-                credentials: 'include'
-            });
-
-            if (verifyResponse.ok) {
-                // Update UI to show signature success
-                updateStepStatus('signStep', 'success', 'Verification complete');
-                // Reload page after a short delay
-                setTimeout(() => window.location.reload(), 1000);
-            } else {
-                const data = await verifyResponse.json();
-                if (data.error === 'signature does not match address') {
-                    // If it's just a signature mismatch, retry verification
-                    console.log('Retrying verification...');
-                    const retryResponse = await fetch('/auth/verify', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            address,
-                            signature
-                        }),
-                        credentials: 'include'
-                    });
-                    
-                    if (retryResponse.ok) {
-                        updateStepStatus('signStep', 'success', 'Verification complete');
-                        setTimeout(() => window.location.reload(), 1000);
-                        return;
-                    }
+            // Get nonce with debounce
+            try {
+                const nonce = await getNonceWithDebounce(address);
+                if (!nonce) {
+                    throw new Error('Failed to get nonce');
                 }
-                updateStepStatus('signStep', 'error', data.error || 'Verification failed');
+
+                // Create message to sign
+                const message = `Sign this message to verify your wallet. Nonce: ${nonce}`;
+
+                // Request signature
+                const signature = await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [message, address],
+                });
+
+                // Verify signature
+                const verifyResponse = await fetch('/auth/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        address,
+                        signature
+                    }),
+                    credentials: 'include'
+                });
+
+                if (!verifyResponse.ok) {
+                    const data = await verifyResponse.json();
+                    throw new Error(data.error || 'Verification failed');
+                }
+
+                // Handle successful verification
+                const verifyData = await verifyResponse.json();
+                updateStepStatus('signStep', 'success', 'Verification complete');
+                
+                // Redirect or reload after a short delay
+                setTimeout(() => {
+                    if (verifyData.redirect) {
+                        window.location.href = verifyData.redirect;
+                    } else {
+                        window.location.reload();
+                    }
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error in wallet connection flow:', error);
+                updateStepStatus('signStep', 'error', error.message || 'Connection failed');
+                if (walletBtn) {
+                    walletBtn.textContent = 'Enter';
+                }
             }
+
         } catch (error) {
             console.error('Wallet connection error:', error);
             // Reset navbar status
@@ -258,6 +295,14 @@ async function startWalletConnection() {
         if (walletBtn) {
             walletBtn.textContent = 'Enter';
         }
+    } finally {
+        // Always clean up state
+        currentNonce = null;
+        if (nonceRequestTimeout) {
+            clearTimeout(nonceRequestTimeout);
+            nonceRequestTimeout = null;
+        }
+        nonceRequestInProgress = false;
     }
 }
 
