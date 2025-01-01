@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
@@ -9,166 +9,109 @@
     <link rel="stylesheet" href="/static/css/layout.css">
     <link rel="stylesheet" href="/static/css/navbar.css">
     <link rel="stylesheet" href="/static/css/index.css">
+    <link rel="stylesheet" href="/static/css/auth-modal.css">
     <script type="module" src="/static/js/ethers-init.js"></script>
-  </head>
-  <body>
-    <nav class="navbar">
-      <div class="navbar-brand">
-        <a href="/" class="logo">Proof of Peacemaking</a>
-      </div>
-      <div class="navbar-menu">
-        <div id="navAuthButtons" class="nav-auth-items">
-          <a href="/feed" class="nav-item">Feed</a>
-          <a href="/dashboard" class="nav-item">Dashboard</a>
-        </div>
-        <button id="connectWallet" class="action-button">Connect Wallet</button>
-      </div>
-    </nav>
+</head>
+<body>
+    {{ template "navbar" . }}
     <div class="hero">
-      <div class="container">
-        <h1>Express yourself</h1>
-        <p>for a mutually assured regeneration</p>
-      </div>
+        <div class="container">
+            <h1>Express yourself</h1>
+            <p>for a mutually assured regeneration</p>
+        </div>
     </div>
     <div class="divider"></div>
 
     <div class="split-section">
-      <div class="split-content pink">
-        <h2>You have the power ;)</h2>
-        <p>
-          The world runs on contracts. You can recognize the citizenship of
-          someone, even if your country would not.
-        </p>
-        <a
-          href="https://www.diplomacy.network/initiatives/citizen-recognition"
-          target="_blank"
-          class="action-button"
-          >Learn more</a
-        >
-      </div>
-      <div class="split-content yellow">
-        <h2>Would you act?</h2>
-        <p>
-          Express yourself, acknowledge your peers, mutually request your Proof
-          of Peacemaking documents & certificates.
-        </p>
-      </div>
+        <div class="split-content pink">
+            <h2>You have the power ;)</h2>
+            <p>
+                The world runs on contracts. You can recognize the citizenship of
+                someone, even if your country would not.
+            </p>
+            <a
+                href="https://www.diplomacy.network/initiatives/citizen-recognition"
+                target="_blank"
+                class="action-button"
+            >Learn more</a>
+        </div>
+        <div class="split-content yellow">
+            <h2>Would you act?</h2>
+            <p>
+                Express yourself, acknowledge your peers, mutually request your Proof
+                of Peacemaking documents & certificates.
+            </p>
+        </div>
     </div>
 
     <div class="event-links">
-      <a href="/events/onboarding" class="event-link">Express</a>
-      <a href="/events/conventions" class="event-link event-link-light">Acknowledge</a>
-      <a href="/events/workshops" class="event-link">Request</a>
-      <a href="/events/hackathons" class="event-link">Proof</a>
+        <a href="/events/onboarding" class="event-link">Express</a>
+        <a href="/events/conventions" class="event-link event-link-light">Acknowledge</a>
+        <a href="/events/workshops" class="event-link">Request</a>
+        <a href="/events/hackathons" class="event-link">Proof</a>
     </div>
 
     <div class="divider"></div>
 
     <div id="pre-connect-only">
-      <div class="split-section">
-        <div class="split-content black">
-          <h2>Just enough equality on peacemaking</h2>
-          <p>
-            "Everyone has the right to take initiative, assert equality and
-            exercise free will in contributing to a world peace treaty, while
-            being recognized as a legitimate co-signer, regardless of their
-            entitlement or official status."
-          </p>
+        <div class="split-section">
+            <div class="split-content black">
+                <h2>Just enough equality on peacemaking</h2>
+                <p>
+                    "Everyone has the right to take initiative, assert equality and
+                    exercise free will in contributing to a world peace treaty, while
+                    being recognized as a legitimate co-signer, regardless of their
+                    entitlement or official status."
+                </p>
+            </div>
+            <div class="image-placeholder">
+                <img
+                    src="/static/img/our-right.webp"
+                    alt="Peace through equality"
+                />
+            </div>
         </div>
-        <div class="image-placeholder">
-          <img
-            src="/static/img/our-right.webp"
-            alt="Peace through equality"
-          />
-        </div>
-      </div>
     </div>
 
     <div class="divider"></div>
 
     <footer class="footer" id="footer">
-      <div class="container">
-        <div class="footer-content">
-          <div class="newsletter">
-            <h3>Join our newsletter</h3>
-            <p>Get updates on peace initiatives and community events</p>
-            <form class="newsletter-form">
-              <input type="email" placeholder="Your email address" />
-              <button type="submit">Subscribe</button>
-            </form>
-          </div>
+        <div class="container">
+            <div class="footer-content">
+                <div class="newsletter">
+                    <h3>Join our newsletter</h3>
+                    <p>Get updates on peace initiatives and community events</p>
+                    <form class="newsletter-form">
+                        <input type="email" placeholder="Your email address" />
+                        <button type="submit">Subscribe</button>
+                    </form>
+                </div>
 
-          <div class="footer-links">
-            <div class="link-group">
-              <h4>Connect</h4>
-              <div class="social-links">
-                <a href="https://github.com/stateful-art" target="_blank">GitHub</a>
-                <a href="https://twitter.com/statefulArt" target="_blank">Twitter</a>
-                <a href="https://discord.gg/sqjdyCWNAR" target="_blank">Discord</a>
-              </div>
+                <div class="footer-links">
+                    <div class="link-group">
+                        <h4>Connect</h4>
+                        <div class="social-links">
+                            <a href="https://github.com/stateful-art" target="_blank">GitHub</a>
+                            <a href="https://twitter.com/statefulArt" target="_blank">Twitter</a>
+                            <a href="https://discord.gg/sqjdyCWNAR" target="_blank">Discord</a>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
+            <div class="footer-bottom">
+                <p>
+                    &copy; 2024
+                    <a href="https://stateful.art" class="footer-brand">
+                        <span class="footer-brand-st">st</span><span class="footer-brand-art">art</span> a World Peace
+                    </a>. All rights acknowledged.
+                </p>
+            </div>
         </div>
-        <div class="footer-bottom">
-          <p>
-            &copy; 2024
-            <a href="https://stateful.art" class="footer-brand">
-              <span class="footer-brand-st">st</span><span class="footer-brand-art">art</span> a World Peace
-            </a>. All rights acknowledged.
-          </p>
-        </div>
-      </div>
     </footer>
 
+    {{ template "auth_modal" . }}
+
     <script src="/static/js/wallet.js"></script>
-    <script src="/static/js/main.js"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const navAuthButtons = document.getElementById("navAuthButtons");
-        const footer = document.getElementById("footer");
-        const preConnect = document.getElementById("pre-connect-only");
-
-        async function checkWalletConnection() {
-          try {
-            const response = await fetch("/auth/session");
-            const data = await response.json();
-
-            if (data.authenticated) {
-              if (navAuthButtons) navAuthButtons.style.display = "flex";
-              if (footer) footer.style.display = "none";
-              if (preConnect) preConnect.style.display = "none";
-            } else {
-              if (navAuthButtons) navAuthButtons.style.display = "none";
-              if (footer) footer.style.display = "block";
-              if (preConnect) preConnect.style.display = "block";
-            }
-          } catch (error) {
-            console.error("Error checking wallet connection:", error);
-          }
-        }
-
-        checkWalletConnection();
-
-        connectWalletHero.addEventListener("click", async () => {
-          if (typeof window.ethereum !== "undefined") {
-            try {
-              document.getElementById("connectWallet").click();
-            } catch (error) {
-              console.error("Error connecting wallet:", error);
-            }
-          } else {
-            alert("Please install MetaMask to use this feature");
-          }
-        });
-
-        window.addEventListener("walletConnected", () => {
-          checkWalletConnection();
-        });
-
-        window.addEventListener("walletDisconnected", () => {
-          checkWalletConnection();
-        });
-      });
-    </script>
-  </body>
+    <script src="/static/js/auth.js"></script>
+</body>
 </html>

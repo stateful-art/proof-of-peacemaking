@@ -1,0 +1,32 @@
+<!-- User Dropdown Menu -->
+<div class="user-dropdown-container">
+    <button class="user-dropdown-trigger">
+        <div class="user-avatar">
+            <!-- You can add user avatar here if needed -->
+            <i class="fas fa-user"></i>
+        </div>
+    </button>
+
+    <div class="user-dropdown-menu">
+        <!-- User Info Section -->
+        <div class="user-info">
+            <div class="display-name">{{.User.DisplayName}}</div>
+            {{if .User.Email}}
+                <div class="user-email">{{.User.Email}}</div>
+            {{else if .User.Address}}
+                <div class="user-address">{{.User.Address}}</div>
+            {{end}}
+        </div>
+
+        <!-- Menu Items -->
+        <div class="dropdown-items">
+            <a href="/account" class="dropdown-item">
+                <span>ACCOUNT SETTINGS</span>
+            </a>
+            <a href="/auth/logout" class="dropdown-item">
+                <span>LOG OUT</span>
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </div>
+</div> 

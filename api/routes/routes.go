@@ -61,6 +61,9 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, userService ports.UserSer
 	// Create feed handler with user service
 	feedHandler := handlers.NewFeedHandler(h.Feed.GetFeedService(), userService)
 
+	// Create account handler
+	accountHandler := handlers.NewAccountHandler(userService)
+
 	// Home page (public)
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("index", fiber.Map{
@@ -79,6 +82,9 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, userService ports.UserSer
 
 	// Feed page (protected)
 	app.Get("/feed", authMiddleware.Authenticate(), feedHandler.HandleFeed)
+
+	// Account page (protected)
+	app.Get("/account", authMiddleware.Authenticate(), accountHandler.HandleAccount)
 
 	// Dashboard page (protected)
 	app.Get("/dashboard", authMiddleware.Authenticate(), h.Dashboard.GetDashboard)
@@ -105,4 +111,9 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers, userService ports.UserSer
 	proofs.Post("/request", h.ProofNFT.RequestProof)
 	proofs.Put("/approve/:id", h.ProofNFT.ApproveProof)
 	proofs.Get("/user", h.ProofNFT.ListUserProofs)
+
+	// User profile routes
+	users := api.Group("/users")
+	users.Put("/profile", accountHandler.UpdateProfile)
+	users.Post("/connect-wallet", accountHandler.ConnectWallet)
 }

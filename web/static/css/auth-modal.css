@@ -1,0 +1,148 @@
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    z-index: 1100;
+}
+
+.modal-backdrop.active {
+    display: block;
+}
+
+.modal {
+    position: relative;
+    background: var(--bg-secondary);
+    width: 90%;
+    max-width: 400px;
+    margin: 80px auto;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-primary);
+}
+
+/* Auth specific styles */
+.auth-tabs {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.auth-tab-link {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 600;
+    padding: 8px 0;
+    cursor: pointer;
+    position: relative;
+}
+
+.auth-tab-link.active {
+    color: var(--text-primary);
+}
+
+.auth-tab-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -16px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--accent-color);
+}
+
+.auth-form {
+    display: none;
+    padding: 1.5rem;
+}
+
+.auth-form.active {
+    display: block;
+}
+
+.auth-form .form-group {
+    margin-bottom: 1rem;
+}
+
+.auth-form .form-group label {
+    display: block;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.auth-form .form-group input {
+    width: 100%;
+    padding: 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.auth-form .form-group input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.auth-form .divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 1.5rem 0;
+}
+
+.auth-form .divider::before,
+.auth-form .divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.auth-form .divider span {
+    padding: 0 10px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.btn {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-metamask {
+    background: #f6851b;
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-metamask img {
+    width: 24px;
+    height: 24px;
+} 

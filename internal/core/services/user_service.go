@@ -19,7 +19,7 @@ func NewUserService(userRepo ports.UserRepository) ports.UserService {
 }
 
 func (s *userService) GetUserByAddress(ctx context.Context, address string) (*domain.User, error) {
-	return s.userRepo.FindByAddress(ctx, address)
+	return s.userRepo.GetByAddress(ctx, address)
 }
 
 func (s *userService) Create(ctx context.Context, user *domain.User) error {
@@ -32,4 +32,16 @@ func (s *userService) Update(ctx context.Context, user *domain.User) error {
 
 func (s *userService) UpdateNonce(ctx context.Context, id primitive.ObjectID, nonce int) error {
 	return s.userRepo.UpdateNonce(ctx, id, nonce)
+}
+
+func (s *userService) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	return s.userRepo.GetByEmail(ctx, email)
+}
+
+func (s *userService) ConnectWallet(ctx context.Context, userID primitive.ObjectID, address string) error {
+	return s.userRepo.ConnectWallet(ctx, userID, address)
+}
+
+func (s *userService) GetUserByUsername(ctx context.Context, username string) (*domain.User, error) {
+	return s.userRepo.GetByUsername(ctx, username)
 }

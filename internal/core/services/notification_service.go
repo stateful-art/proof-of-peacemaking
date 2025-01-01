@@ -61,23 +61,42 @@ func (s *notificationService) NotifyNewAcknowledgement(
 }
 
 func (s *notificationService) GetUserNotifications(ctx context.Context, userAddress string) ([]*domain.Notification, error) {
-	user, err := s.userRepo.FindByAddress(ctx, userAddress)
+	user, err := s.userRepo.GetByAddress(ctx, userAddress)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
-	return s.notificationRepo.GetUserUnreadNotifications(ctx, user.ID)
+	if user == nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	notifications, err := s.notificationRepo.GetUserUnreadNotifications(ctx, user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get notifications: %w", err)
+	}
+
+	return notifications, nil
 }
 
 func (s *notificationService) MarkNotificationAsRead(ctx context.Context, userAddress string, notificationID string) error {
-	user, err := s.userRepo.FindByAddress(ctx, userAddress)
+	user, err := s.userRepo.GetByAddress(ctx, userAddress)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to find user: %w", err)
 	}
-	notifID, err := primitive.ObjectIDFromHex(notificationID)
+	if user == nil {
+		return fmt.Errorf("user not found")
+	}
+
+	notificationObjectID, err := primitive.ObjectIDFromHex(notificationID)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid notification ID: %w", err)
 	}
-	return s.notificationRepo.MarkAsRead(ctx, user.ID, notifID)
+
+	err = s.notificationRepo.MarkAsRead(ctx, user.ID, notificationObjectID)
+	if err != nil {
+		return fmt.Errorf("failed to mark notification as read: %w", err)
+	}
+
+	return nil
 }
 
 func (s *notificationService) NotifyNFTMinted(ctx context.Context, nft *domain.ProofNFT) error {

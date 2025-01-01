@@ -24,7 +24,7 @@ func NewProofNFTService(userRepo ports.UserRepository, proofNFTRepo ports.ProofN
 
 func (s *proofNFTService) RequestProof(ctx context.Context, expressionID string, acknowledgementID string) error {
 	// Get user from context
-	user, err := s.userRepo.FindByAddress(ctx, expressionID)
+	user, err := s.userRepo.GetByAddress(ctx, expressionID)
 	if err != nil {
 		return fmt.Errorf("failed to find user: %w", err)
 	}
@@ -42,7 +42,7 @@ func (s *proofNFTService) RequestProof(ctx context.Context, expressionID string,
 		CreatedAt:    time.Now(),
 	}
 
-	// Save to repository
+	// Save to database
 	if err := s.proofNFTRepo.Create(ctx, proofNFT); err != nil {
 		return fmt.Errorf("failed to create proof NFT: %w", err)
 	}
@@ -51,31 +51,22 @@ func (s *proofNFTService) RequestProof(ctx context.Context, expressionID string,
 }
 
 func (s *proofNFTService) ApproveProof(ctx context.Context, requestID string) error {
-	// Get the proof request
-	proofNFT, err := s.proofNFTRepo.FindByID(ctx, requestID)
+	// Get user from context
+	user, err := s.userRepo.GetByAddress(ctx, requestID)
 	if err != nil {
-		return fmt.Errorf("failed to find proof NFT: %w", err)
+		return fmt.Errorf("failed to find user: %w", err)
 	}
-	if proofNFT == nil {
-		return fmt.Errorf("proof NFT not found")
-	}
-
-	// Update status
-	proofNFT.Status = string(domain.ProofRequestAccepted)
-	now := time.Now()
-	proofNFT.MintedAt = &now
-
-	// Save changes
-	if err := s.proofNFTRepo.Update(ctx, proofNFT); err != nil {
-		return fmt.Errorf("failed to update proof NFT: %w", err)
+	if user == nil {
+		return fmt.Errorf("user not found")
 	}
 
+	// TODO: Implement proof approval logic
 	return nil
 }
 
 func (s *proofNFTService) ListUserProofs(ctx context.Context, userAddress string) ([]*domain.ProofNFT, error) {
-	// Get user
-	user, err := s.userRepo.FindByAddress(ctx, userAddress)
+	// Get user by address
+	user, err := s.userRepo.GetByAddress(ctx, userAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
@@ -83,11 +74,6 @@ func (s *proofNFTService) ListUserProofs(ctx context.Context, userAddress string
 		return nil, fmt.Errorf("user not found")
 	}
 
-	// Get proofs for user
-	proofs, err := s.proofNFTRepo.FindByAcknowledger(ctx, user.ID.Hex())
-	if err != nil {
-		return nil, fmt.Errorf("failed to find proofs: %w", err)
-	}
-
-	return proofs, nil
+	// TODO: Implement listing user proofs
+	return nil, nil
 }

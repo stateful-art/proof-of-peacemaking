@@ -1,0 +1,55 @@
+{{ define "auth_modal" }}
+<div id="authModal" class="modal-backdrop">
+    <div class="modal">
+        <button class="modal-close" onclick="closeAuthModal()">&times;</button>
+        <div class="auth-tabs">
+            <button class="auth-tab-link active" onclick="switchAuthMode('login')">Login</button>
+            <button class="auth-tab-link" onclick="switchAuthMode('register')">Register</button>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginForm" class="auth-form active">
+            <div class="form-group">
+                <label for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" required>
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" required>
+            </div>
+            <button type="submit" class="btn">Login</button>
+            
+            <div class="divider">
+                <span>or</span>
+            </div>
+            
+            <button type="button" class="btn btn-metamask" onclick="connectWallet()">
+                <img src="/static/img/metamask.svg" alt="MetaMask">
+                Connect with MetaMask
+            </button>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="auth-form">
+            <div class="form-group">
+                <label for="registerEmail">Email</label>
+                <input type="email" id="registerEmail" required>
+            </div>
+            <div class="form-group">
+                <label for="registerPassword">Password</label>
+                <input type="password" id="registerPassword" required>
+            </div>
+            <button type="submit" class="btn">Register</button>
+            
+            <div class="divider">
+                <span>or</span>
+            </div>
+            
+            <button type="button" class="btn btn-metamask" onclick="connectWallet()">
+                <img src="/static/img/metamask.svg" alt="MetaMask">
+                Connect with MetaMask
+            </button>
+        </div>
+    </div>
+</div>
+{{ end }} 

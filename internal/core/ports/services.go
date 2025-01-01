@@ -54,8 +54,11 @@ type FeedService interface {
 
 // UserService handles user-related operations
 type UserService interface {
-	GetUserByAddress(ctx context.Context, address string) (*domain.User, error)
 	Create(ctx context.Context, user *domain.User) error
 	Update(ctx context.Context, user *domain.User) error
+	GetUserByAddress(ctx context.Context, address string) (*domain.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
+	GetUserByUsername(ctx context.Context, username string) (*domain.User, error)
 	UpdateNonce(ctx context.Context, id primitive.ObjectID, nonce int) error
+	ConnectWallet(ctx context.Context, userID primitive.ObjectID, address string) error
 }

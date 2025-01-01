@@ -1,10 +1,18 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the expression modal
+    const expressionModal = new Modal('createExpressionModal');
+    const expressionForm = new ExpressionForm('expressionForm');
+    window.expressionModal = expressionModal; // Make it globally available
+
     // Create Expression button click handler
     const createExpressionBtn = document.getElementById('createExpressionBtn');
     if (createExpressionBtn) {
         createExpressionBtn.addEventListener('click', () => {
+            console.log('Opening expression modal...'); // Debug log
             expressionModal.open();
         });
+    } else {
+        console.error('Create Expression button not found'); // Debug log
     }
 
     // Handle acknowledgement buttons

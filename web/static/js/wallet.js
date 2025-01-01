@@ -29,19 +29,22 @@ async function checkSession() {
         if (data.authenticated && data.address) {
             isConnected = true;
             currentAddress = data.address;
-            updateWalletButton(data.address);
             
-            // Update UI elements
-            const navAuthButtons = document.getElementById('navAuthButtons');
-            const connectWalletHero = document.getElementById('connectWalletHero');
-            const authenticatedButtons = document.getElementById('authenticatedButtons');
+            // Update UI with user icon and dropdown
+            const enterButton = document.getElementById('connectWallet');
+            if (enterButton) {
+                updateWalletButton(data.address);
+            }
             
-            if (navAuthButtons) navAuthButtons.style.display = 'flex';
-            if (connectWalletHero) connectWalletHero.style.display = 'none';
-            if (authenticatedButtons) authenticatedButtons.style.display = 'block';
+            // Show nav items
+            const navAuthItems = document.querySelector('.nav-auth-items');
+            if (navAuthItems) {
+                navAuthItems.classList.add('visible');
+            }
             
             return true;
         }
+        
         return false;
     } catch (error) {
         console.error('Error checking session:', error);
@@ -49,80 +52,90 @@ async function checkSession() {
     }
 }
 
-// Add this function to check if wallet is already connected
-async function checkConnection() {
-    // Only check if we have a valid session
-    const hasSession = await checkSession();
-    if (hasSession) {
+// Update the connectWallet function
+async function connectWallet() {
+    // First check if MetaMask is installed
+    if (typeof window.ethereum === 'undefined') {
+        // If no MetaMask, open auth modal instead
+        openAuthModal();
         return;
     }
 
-    // If no session, just update the button to show Connect Wallet
-    const walletButton = document.getElementById('connectWallet');
-    if (walletButton) {
-        walletButton.innerHTML = 'Connect Wallet';
-        walletButton.className = 'btn-connect';
-    }
-}
+    try {
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const connectButton = document.getElementById('connectWallet');
+        
+        // Show loading spinner and hide connect button
+        if (loadingSpinner && connectButton) {
+            connectButton.style.display = 'none';
+            loadingSpinner.style.display = 'inline-flex';
+        }
 
-// Update the connectWallet function
-async function connectWallet() {
-    if (typeof window.ethereum !== 'undefined') {
-        try {
-            // Request account access
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            const address = accounts[0];
+        // Request account access
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const address = accounts[0];
 
-            // Get nonce from server
-            const nonceResponse = await fetch(`/auth/nonce?address=${address}`);
-            const nonceData = await nonceResponse.json();
+        // Get nonce from server
+        const nonceResponse = await fetch(`/auth/nonce?address=${address}`);
+        const nonceData = await nonceResponse.json();
 
-            // Request signature with the exact same message format as backend
-            const message = `Sign this message to verify your wallet. Nonce: ${nonceData.nonce}`;
-            const signature = await window.ethereum.request({
-                method: 'personal_sign',
-                params: [
-                    message,
-                    address
-                ]
-            });
+        // Request signature with the exact same message format as backend
+        const message = `Sign this message to verify your wallet. Nonce: ${nonceData.nonce}`;
+        const signature = await window.ethereum.request({
+            method: 'personal_sign',
+            params: [
+                message,
+                address
+            ]
+        });
 
-            // Verify signature with server
-            const verifyResponse = await fetch('/auth/verify', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    address: address,
-                    signature: signature
-                }),
-                credentials: 'include'  // Important: include credentials
-            });
+        // Verify signature with server
+        const verifyResponse = await fetch('/auth/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                address: address,
+                signature: signature
+            }),
+            credentials: 'include'  // Important: include credentials
+        });
 
-            if (verifyResponse.ok) {
-                isConnected = true;
-                currentAddress = address;
-                // Update UI
-                updateWalletButton(address);
-                // Dispatch wallet connected event
-                window.dispatchEvent(new Event('walletConnected'));
-                // Ensure the page reloads after everything is set
-                await checkSession();  // Double-check session is set
-                window.location.reload();
-            } else {
-                const errorData = await verifyResponse.json();
-                console.error('Failed to verify signature:', errorData.error);
-                isConnected = false;
-                currentAddress = null;
-            }
-        } catch (error) {
-            console.error('Error connecting wallet:', error);
+        if (verifyResponse.ok) {
+            isConnected = true;
+            currentAddress = address;
+            // Update UI
+            updateWalletButton(address);
+            // Dispatch wallet connected event
+            window.dispatchEvent(new Event('walletConnected'));
+            // Ensure the page reloads after everything is set
+            await checkSession();  // Double-check session is set
+            window.location.reload();
+        } else {
+            const errorData = await verifyResponse.json();
+            console.error('Failed to verify signature:', errorData.error);
             isConnected = false;
             currentAddress = null;
+            
+            // Hide loading spinner and show connect button on error
+            if (loadingSpinner && connectButton) {
+                loadingSpinner.style.display = 'none';
+                connectButton.style.display = 'inline-block';
+            }
         }
-    } else {
-        alert('Please install MetaMask to use this feature');
+    } catch (error) {
+        console.error('Error connecting wallet:', error);
+        isConnected = false;
+        currentAddress = null;
+        
+        // Hide loading spinner and show connect button on error
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const connectButton = document.getElementById('connectWallet');
+        if (loadingSpinner && connectButton) {
+            loadingSpinner.style.display = 'none';
+            connectButton.style.display = 'inline-block';
+        }
     }
 }
 
@@ -139,20 +152,18 @@ async function disconnectWallet() {
         });
 
         // Update UI
-        const walletButton = document.getElementById('connectWallet');
-        if (walletButton) {
-            walletButton.innerHTML = 'Connect Wallet';
-            walletButton.className = 'btn-connect';
+        const enterButton = document.getElementById('connectWallet');
+        if (enterButton) {
+            enterButton.innerHTML = 'Enter';
+            enterButton.className = 'action-button';
+            enterButton.onclick = openAuthModal;
         }
 
-        // Update other UI elements
-        const navAuthButtons = document.getElementById('navAuthButtons');
-        const connectWalletHero = document.getElementById('connectWalletHero');
-        const authenticatedButtons = document.getElementById('authenticatedButtons');
-        
-        if (navAuthButtons) navAuthButtons.style.display = 'none';
-        if (connectWalletHero) connectWalletHero.style.display = 'block';
-        if (authenticatedButtons) authenticatedButtons.style.display = 'none';
+        // Update nav items visibility
+        const navAuthItems = document.querySelector('.nav-auth-items');
+        if (navAuthItems) {
+            navAuthItems.classList.remove('visible');
+        }
 
         // Dispatch wallet disconnected event
         window.dispatchEvent(new Event('walletDisconnected'));
@@ -169,21 +180,68 @@ async function disconnectWallet() {
 // Add function to update wallet button
 function updateWalletButton(address) {
     const walletButton = document.getElementById('connectWallet');
+    if (!walletButton) return;
+
+    if (!address) {
+        // If no address, set up the Enter button
+        walletButton.innerHTML = 'Enter';
+        walletButton.className = 'action-button';
+        walletButton.onclick = openAuthModal;
+        return;
+    }
+
     const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
-    
-    walletButton.innerHTML = `
-        <span>${shortAddress}</span>
+
+    // Replace the button with a user dropdown
+    const userDropdown = document.createElement('div');
+    userDropdown.className = 'user-dropdown';
+    userDropdown.innerHTML = `
+        <button class="user-icon" id="userIcon">
+            <img src="/static/img/user.png" alt="User" width="24" height="24">
+        </button>
         <div class="dropdown-content">
             <div class="wallet-info">
-                <div>Connected Wallet</div>
-                <div class="wallet-address">${address}</div>
+                <div class="wallet-address">${shortAddress}</div>
             </div>
-            <button onclick="copyAddress('${address}')">Copy Address</button>
-            <button onclick="viewOnExplorer('${address}')">View on Explorer</button>
-            <button class="disconnect" onclick="disconnectWallet()">Disconnect</button>
+            <a href="/account" class="dropdown-item">Settings</a>
+            <a href="#" class="dropdown-item disconnect" onclick="disconnectWallet(); return false;">Disconnect</a>
         </div>
     `;
-    walletButton.className = 'wallet-button connected';
+
+    // Replace the existing button with the new dropdown
+    walletButton.parentNode.replaceChild(userDropdown, walletButton);
+
+    // Add click handler for the new user icon
+    setupUserIconHandlers(userDropdown);
+}
+
+// Setup user icon click handlers
+function setupUserIconHandlers(userDropdown) {
+    const userIcon = userDropdown.querySelector('.user-icon');
+    if (!userIcon) return;
+
+    // Remove any existing click handlers
+    const newUserIcon = userIcon.cloneNode(true);
+    userIcon.parentNode.replaceChild(newUserIcon, userIcon);
+
+    // Add click handler for the user icon
+    newUserIcon.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dropdown = userDropdown.querySelector('.dropdown-content');
+        if (dropdown) {
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!userDropdown.contains(e.target)) {
+            const dropdown = userDropdown.querySelector('.dropdown-content');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+    });
 }
 
 // Add utility functions
@@ -221,21 +279,28 @@ window.onclick = function(event) {
 // Update the event listeners
 document.addEventListener('DOMContentLoaded', async () => {
     // Check session status on page load - only once
-    await checkSession();
+    const hasSession = await checkSession();
 
-    const connectButton = document.getElementById('connectWallet');
-    if (connectButton) {
-        connectButton.addEventListener('click', async (e) => {
-            if (isConnected) {
-                toggleDropdown(e);
-            } else {
-                try {
-                    await connectWallet();
-                } catch (error) {
-                    console.error('Failed to connect wallet:', error);
-                }
-            }
-        });
+    // Initialize the Enter button if user is not connected
+    if (!hasSession) {
+        const enterButton = document.getElementById('connectWallet');
+        if (enterButton) {
+            enterButton.innerHTML = 'Enter';
+            enterButton.className = 'action-button';
+            enterButton.onclick = openAuthModal;
+        }
+    } else {
+        // User is already connected
+        const authModal = document.getElementById('authModal');
+        if (authModal) {
+            authModal.classList.remove('active');
+        }
+
+        // Setup click handlers for existing user icon if present
+        const existingDropdown = document.querySelector('.user-dropdown');
+        if (existingDropdown) {
+            setupUserIconHandlers(existingDropdown);
+        }
     }
 
     // Listen for account changes

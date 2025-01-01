@@ -9,19 +9,11 @@
     <link rel="stylesheet" href="/static/css/layout.css">
     <link rel="stylesheet" href="/static/css/navbar.css">
     <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="/static/css/auth.css">
     <script type="module" src="/static/js/ethers-init.js"></script>
 </head>
 <body class="dark-mode">
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <a href="/" class="logo">Proof of Peacemaking</a>
-        </div>
-        <div class="navbar-menu">
-            <a href="/feed" class="nav-item">Feed</a>
-            <a href="/dashboard" class="nav-item active">Dashboard</a>
-            <button id="connectWallet" class="btn-connect">Connect Wallet</button>
-        </div>
-    </nav>
+    {{ template "navbar" . }}
 
     <main class="main-content">
         <div class="container">
@@ -31,5 +23,10 @@
             <!-- Rest of your dashboard content -->
         </div>
     </main>
+
+    {{ template "auth_modal" . }}
+
+    <script src="/static/js/wallet.js"></script>
+    <script src="/static/js/auth.js"></script>
 </body>
 </html> 

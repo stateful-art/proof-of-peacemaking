@@ -10,9 +10,13 @@ import (
 
 type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) error
-	FindByAddress(ctx context.Context, address string) (*domain.User, error)
 	Update(ctx context.Context, user *domain.User) error
+	GetByID(ctx context.Context, id string) (*domain.User, error)
+	GetByAddress(ctx context.Context, address string) (*domain.User, error)
+	GetByEmail(ctx context.Context, email string) (*domain.User, error)
+	GetByUsername(ctx context.Context, username string) (*domain.User, error)
 	UpdateNonce(ctx context.Context, id primitive.ObjectID, nonce int) error
+	ConnectWallet(ctx context.Context, userID primitive.ObjectID, address string) error
 }
 
 type NotificationRepository interface {

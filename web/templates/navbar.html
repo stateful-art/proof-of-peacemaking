@@ -1,0 +1,33 @@
+{{ define "navbar" }}
+<nav class="navbar">
+    <div class="navbar-brand">
+        <a href="/" class="logo">Proof of Peacemaking</a>
+    </div>
+    <div class="navbar-menu">
+        <div class="nav-auth-items {{ if .User }}visible{{ end }}">
+            <a href="/feed" class="nav-item">Feed</a>
+            <a href="/dashboard" class="nav-item">Dashboard</a>
+        </div>
+        {{ if .User }}
+            <div class="user-dropdown">
+                <button class="user-icon" id="userIcon">
+                    <img src="/static/img/user.png" alt="User" width="24" height="24">
+                </button>
+                <div class="dropdown-content">
+                    <div class="wallet-info">
+                        <div class="wallet-address">{{ slice .User.Address 0 6 }}...{{ slice .User.Address 38 42 }}</div>
+                    </div>
+                    <a href="/account" class="dropdown-item">Settings</a>
+                    <a href="#" class="dropdown-item disconnect" onclick="disconnectWallet(); return false;">Disconnect</a>
+                </div>
+            </div>
+        {{ else }}
+            <button class="action-button" id="connectWallet">Enter</button>
+            <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+                <div class="spinner"></div>
+                <span>Confirming...</span>
+            </div>
+        {{ end }}
+    </div>
+</nav>
+{{ end }} 

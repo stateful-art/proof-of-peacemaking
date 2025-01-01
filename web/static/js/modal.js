@@ -28,15 +28,19 @@ class Modal {
     }
 
     open() {
+        if (!this.modal) return;
         this.modal.classList.add('active');
         this.isOpen = true;
         document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        console.log('Modal opened:', this.modal.id); // Debug log
     }
 
     close() {
+        if (!this.modal) return;
         this.modal.classList.remove('active');
         this.isOpen = false;
         document.body.style.overflow = ''; // Restore scrolling
+        console.log('Modal closed:', this.modal.id); // Debug log
     }
 }
 
@@ -47,35 +51,49 @@ class ExpressionForm {
         this.mediaRecorder = null;
         this.recordedChunks = [];
         this.isRecording = false;
-        this.setupEventListeners();
+        if (this.form) {
+            this.setupEventListeners();
+        } else {
+            console.error('Expression form not found:', formId); // Debug log
+        }
     }
 
     setupEventListeners() {
         // Record buttons
-        document.getElementById('audioRecord').addEventListener('click', () => {
-            if (!this.isRecording) {
-                this.startRecording('audio');
-            } else {
-                this.stopRecording();
-            }
-        });
+        const audioRecordBtn = document.getElementById('audioRecord');
+        const videoRecordBtn = document.getElementById('videoRecord');
+        const imageUploadBtn = document.getElementById('imageUpload');
+        const imageInput = document.getElementById('imageInput');
 
-        document.getElementById('videoRecord').addEventListener('click', () => {
-            if (!this.isRecording) {
-                this.startRecording('video');
-            } else {
-                this.stopRecording();
-            }
-        });
+        if (audioRecordBtn) {
+            audioRecordBtn.addEventListener('click', () => {
+                if (!this.isRecording) {
+                    this.startRecording('audio');
+                } else {
+                    this.stopRecording();
+                }
+            });
+        }
 
-        // Image upload
-        document.getElementById('imageUpload').addEventListener('click', () => {
-            document.getElementById('imageInput').click();
-        });
+        if (videoRecordBtn) {
+            videoRecordBtn.addEventListener('click', () => {
+                if (!this.isRecording) {
+                    this.startRecording('video');
+                } else {
+                    this.stopRecording();
+                }
+            });
+        }
 
-        document.getElementById('imageInput').addEventListener('change', (e) => {
-            this.handleImageUpload(e);
-        });
+        if (imageUploadBtn && imageInput) {
+            imageUploadBtn.addEventListener('click', () => {
+                imageInput.click();
+            });
+
+            imageInput.addEventListener('change', (e) => {
+                this.handleImageUpload(e);
+            });
+        }
 
         // Form submission
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
@@ -204,9 +222,6 @@ class ExpressionForm {
     }
 }
 
-// Initialize
-const expressionModal = new Modal('createExpressionModal');
-const expressionForm = new ExpressionForm('expressionForm');
-
-// Export for use in other files
-window.expressionModal = expressionModal; 
+// Initialize and export for use in other files
+window.Modal = Modal;
+window.ExpressionForm = ExpressionForm; 

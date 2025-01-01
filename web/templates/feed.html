@@ -9,20 +9,11 @@
     <link rel="stylesheet" href="/static/css/layout.css">
     <link rel="stylesheet" href="/static/css/navbar.css">
     <link rel="stylesheet" href="/static/css/feed.css">
-    <link rel="stylesheet" href="/static/css/modal.css">
+    <link rel="stylesheet" href="/static/css/expression-modal.css">
     <script type="module" src="/static/js/ethers-init.js"></script>
 </head>
 <body class="dark-mode">
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <a href="/" class="logo">Proof of Peacemaking</a>
-        </div>
-        <div class="navbar-menu">
-            <a href="/feed" class="nav-item active">Feed</a>
-            <a href="/dashboard" class="nav-item">Dashboard</a>
-            <button id="connectWallet" class="btn-connect">Connect Wallet</button>
-        </div>
-    </nav>
+    {{ template "navbar" . }}
 
     <main class="main-content">
         <div class="feed-container">
@@ -120,7 +111,10 @@
         </div>
     </div>
 
+    {{ template "auth_modal" . }}
+
     <script src="/static/js/wallet.js"></script>
+    <script src="/static/js/auth.js"></script>
     <script src="/static/js/modal.js"></script>
     <script src="/static/js/feed.js"></script>
 </body>
