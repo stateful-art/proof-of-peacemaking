@@ -43,10 +43,10 @@ func (r *acknowledgementRepository) FindByExpression(ctx context.Context, expres
 	return acknowledgements, nil
 }
 
-func (r *acknowledgementRepository) FindByCreator(ctx context.Context, creatorAddress string) ([]*domain.Acknowledgement, error) {
-	cursor, err := r.collection.Find(ctx, bson.M{"acknowledger": creatorAddress})
+func (r *acknowledgementRepository) FindByAcknowledger(ctx context.Context, acknowledgerID string) ([]*domain.Acknowledgement, error) {
+	cursor, err := r.collection.Find(ctx, bson.M{"acknowledger": acknowledgerID})
 	if err != nil {
-		return nil, fmt.Errorf("failed to find acknowledgements by creator: %w", err)
+		return nil, fmt.Errorf("failed to find acknowledgements by acknowledger: %w", err)
 	}
 	defer cursor.Close(ctx)
 

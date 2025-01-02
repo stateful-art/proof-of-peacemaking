@@ -86,8 +86,8 @@ func (s *expressionService) List(ctx context.Context) ([]*domain.Expression, err
 	return expressions, nil
 }
 
-func (s *expressionService) ListByUser(ctx context.Context, userAddress string) ([]*domain.Expression, error) {
-	expressions, err := s.expressionRepo.FindByCreator(ctx, userAddress)
+func (s *expressionService) ListByUser(ctx context.Context, userID string) ([]*domain.Expression, error) {
+	expressions, err := s.expressionRepo.FindByCreatorID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list expressions by user: %w", err)
 	}
@@ -111,6 +111,41 @@ func (s *expressionService) ListByUser(ctx context.Context, userAddress string) 
 				expr.ActiveAcknowledgementCount++
 			}
 		}
+	}
+
+	return expressions, nil
+}
+
+func (s *expressionService) GetMultiple(ctx context.Context, ids []string) (map[string]*domain.Expression, error) {
+	expressions := make(map[string]*domain.Expression)
+
+	// Get all expressions in one query
+	expressionsList, err := s.expressionRepo.FindByIDs(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get expressions: %w", err)
+	}
+
+	// Create a map of expression IDs to expressions
+	for _, expr := range expressionsList {
+		// Initialize counts to 0
+		expr.ActiveAcknowledgementCount = 0
+		expr.Acknowledgements = []*domain.Acknowledgement{}
+
+		// Get acknowledgements for the expression
+		acks, err := s.acknowledgementRepo.FindByExpression(ctx, expr.ID.Hex())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get acknowledgements for expression: %w", err)
+		}
+		expr.Acknowledgements = acks
+
+		// Calculate active acknowledgement count
+		for _, ack := range acks {
+			if ack.Status == domain.AcknowledgementStatusActive {
+				expr.ActiveAcknowledgementCount++
+			}
+		}
+
+		expressions[expr.ID.Hex()] = expr
 	}
 
 	return expressions, nil

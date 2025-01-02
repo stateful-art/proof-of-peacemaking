@@ -32,7 +32,8 @@ type ExpressionService interface {
 	Create(ctx context.Context, expression *domain.Expression) error
 	Get(ctx context.Context, id string) (*domain.Expression, error)
 	List(ctx context.Context) ([]*domain.Expression, error)
-	ListByUser(ctx context.Context, userAddress string) ([]*domain.Expression, error)
+	ListByUser(ctx context.Context, userID string) ([]*domain.Expression, error)
+	GetMultiple(ctx context.Context, ids []string) (map[string]*domain.Expression, error)
 }
 
 type AcknowledgementService interface {

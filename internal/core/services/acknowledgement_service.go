@@ -32,8 +32,8 @@ func (s *acknowledgementService) ListByExpression(ctx context.Context, expressio
 	return acknowledgements, nil
 }
 
-func (s *acknowledgementService) ListByUser(ctx context.Context, userAddress string) ([]*domain.Acknowledgement, error) {
-	acknowledgements, err := s.acknowledgementRepo.FindByCreator(ctx, userAddress)
+func (s *acknowledgementService) ListByUser(ctx context.Context, userID string) ([]*domain.Acknowledgement, error) {
+	acknowledgements, err := s.acknowledgementRepo.FindByAcknowledger(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list acknowledgements by user: %w", err)
 	}

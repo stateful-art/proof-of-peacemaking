@@ -7,6 +7,8 @@ import (
 
 	"log"
 
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -34,10 +36,17 @@ func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
 	}
 
 	// Get user from context
-	userAddress := c.Locals("userAddress").(string)
-	log.Printf("[EXPRESSION] Looking up user with address: %s", userAddress)
+	userIdentifier := c.Locals("userAddress").(string)
+	log.Printf("[EXPRESSION] Looking up user with identifier: %s", userIdentifier)
 
-	user, err := h.userService.GetUserByAddress(c.Context(), userAddress)
+	// Get user by email or address
+	var user *domain.User
+	if strings.Contains(userIdentifier, "@") {
+		user, err = h.userService.GetUserByEmail(c.Context(), userIdentifier)
+	} else {
+		user, err = h.userService.GetUserByAddress(c.Context(), userIdentifier)
+	}
+
 	if err != nil {
 		log.Printf("[EXPRESSION] Error getting user: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -45,7 +54,7 @@ func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
 		})
 	}
 	if user == nil {
-		log.Printf("[EXPRESSION] User not found for address: %s", userAddress)
+		log.Printf("[EXPRESSION] User not found for identifier: %s", userIdentifier)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "User not found",
 		})
@@ -103,7 +112,7 @@ func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
 	expression := &domain.Expression{
 		ID:             primitive.NewObjectID(),
 		Creator:        user.ID.Hex(),
-		CreatorAddress: userAddress,
+		CreatorAddress: userIdentifier,
 		Content:        content,
 		Status:         "pending",
 		CreatedAt:      time.Now(),

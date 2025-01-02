@@ -63,10 +63,36 @@ func (r *expressionRepository) FindAll(ctx context.Context) ([]*domain.Expressio
 	return expressions, nil
 }
 
-func (r *expressionRepository) FindByCreator(ctx context.Context, creatorAddress string) ([]*domain.Expression, error) {
-	cursor, err := r.collection.Find(ctx, bson.M{"creatorAddress": creatorAddress})
+func (r *expressionRepository) FindByCreatorID(ctx context.Context, creatorID string) ([]*domain.Expression, error) {
+	cursor, err := r.collection.Find(ctx, bson.M{"creator": creatorID})
 	if err != nil {
-		return nil, fmt.Errorf("failed to find expressions by creator: %w", err)
+		return nil, fmt.Errorf("failed to find expressions by creator ID: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var expressions []*domain.Expression
+	if err := cursor.All(ctx, &expressions); err != nil {
+		return nil, fmt.Errorf("failed to decode expressions: %w", err)
+	}
+
+	return expressions, nil
+}
+
+func (r *expressionRepository) FindByIDs(ctx context.Context, ids []string) ([]*domain.Expression, error) {
+	// Convert string IDs to ObjectIDs
+	objectIDs := make([]primitive.ObjectID, 0, len(ids))
+	for _, id := range ids {
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return nil, fmt.Errorf("invalid expression ID format: %w", err)
+		}
+		objectIDs = append(objectIDs, objectID)
+	}
+
+	// Query expressions with $in operator
+	cursor, err := r.collection.Find(ctx, bson.M{"_id": bson.M{"$in": objectIDs}})
+	if err != nil {
+		return nil, fmt.Errorf("failed to find expressions: %w", err)
 	}
 	defer cursor.Close(ctx)
 

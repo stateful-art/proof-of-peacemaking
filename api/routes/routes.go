@@ -116,6 +116,8 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 
 	// Dashboard page (protected)
 	app.Get("/dashboard", authMiddleware.Authenticate(), h.Dashboard.GetDashboard)
+	app.Get("/dashboard/expressions", authMiddleware.Authenticate(), h.Dashboard.GetExpressions)
+	app.Get("/dashboard/acknowledgements", authMiddleware.Authenticate(), h.Dashboard.GetAcknowledgements)
 
 	api := app.Group("/api", authMiddleware.Authenticate())
 	// Notification routes

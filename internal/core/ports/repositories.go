@@ -38,13 +38,14 @@ type ExpressionRepository interface {
 	Create(ctx context.Context, expression *domain.Expression) error
 	FindByID(ctx context.Context, id string) (*domain.Expression, error)
 	FindAll(ctx context.Context) ([]*domain.Expression, error)
-	FindByCreator(ctx context.Context, creatorAddress string) ([]*domain.Expression, error)
+	FindByCreatorID(ctx context.Context, creatorID string) ([]*domain.Expression, error)
+	FindByIDs(ctx context.Context, ids []string) ([]*domain.Expression, error)
 }
 
 type AcknowledgementRepository interface {
 	Create(ctx context.Context, acknowledgement *domain.Acknowledgement) error
 	FindByExpression(ctx context.Context, expressionID string) ([]*domain.Acknowledgement, error)
-	FindByCreator(ctx context.Context, creatorAddress string) ([]*domain.Acknowledgement, error)
+	FindByAcknowledger(ctx context.Context, acknowledgerID string) ([]*domain.Acknowledgement, error)
 	FindByStatus(ctx context.Context, status domain.AcknowledgementStatus) ([]*domain.Acknowledgement, error)
 	Update(ctx context.Context, acknowledgement *domain.Acknowledgement) error
 }

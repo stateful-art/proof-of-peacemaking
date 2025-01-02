@@ -10,6 +10,59 @@
     <link rel="stylesheet" href="/static/css/navbar.css">
     <link rel="stylesheet" href="/static/css/dashboard.css">
     <script type="module" src="/static/js/ethers-init.js"></script>
+    <style>
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        .stats-card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .stats-card h2 {
+            margin: 0 0 1rem 0;
+            color: #fff;
+            font-size: 1.5rem;
+        }
+        .stats-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .stats-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #333;
+        }
+        .stats-list li:last-child {
+            border-bottom: none;
+        }
+        .stats-label {
+            color: #888;
+        }
+        .stats-value {
+            color: #fff;
+            font-weight: 500;
+        }
+        .view-all {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: #333;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .view-all:hover {
+            background: #444;
+        }
+    </style>
 </head>
 <body class="dark-mode">
     {{ template "navbar" . }}
@@ -19,7 +72,48 @@
             <div class="dashboard-header">
                 <h1>Dashboard</h1>
             </div>
-            <!-- Rest of your dashboard content -->
+
+            <div class="stats-container">
+                <!-- Expressions Card -->
+                <div class="stats-card">
+                    <h2>My Expressions</h2>
+                    <ul class="stats-list">
+                        <li>
+                            <span class="stats-label">Total Expressions</span>
+                            <span class="stats-value">{{.ExpressionStats.TotalExpressions}}</span>
+                        </li>
+                        <li>
+                            <span class="stats-label">Acknowledgements Received</span>
+                            <span class="stats-value">{{.ExpressionStats.TotalAcknowledgements}}</span>
+                        </li>
+                        <li>
+                            <span class="stats-label">Unique Acknowledgers</span>
+                            <span class="stats-value">{{.ExpressionStats.UniqueAcknowledgers}}</span>
+                        </li>
+                    </ul>
+                    <a href="/dashboard/expressions" class="view-all">View All Expressions</a>
+                </div>
+
+                <!-- Acknowledgements Card -->
+                <div class="stats-card">
+                    <h2>My Acknowledgements</h2>
+                    <ul class="stats-list">
+                        <li>
+                            <span class="stats-label">Total Acknowledgements</span>
+                            <span class="stats-value">{{.AcknowledgementStats.TotalAcknowledgements}}</span>
+                        </li>
+                        <li>
+                            <span class="stats-label">Unique Expressions</span>
+                            <span class="stats-value">{{.AcknowledgementStats.UniqueExpressions}}</span>
+                        </li>
+                        <li>
+                            <span class="stats-label">Unique Creators</span>
+                            <span class="stats-value">{{.AcknowledgementStats.UniqueCreators}}</span>
+                        </li>
+                    </ul>
+                    <a href="/dashboard/acknowledgements" class="view-all">View All Acknowledgements</a>
+                </div>
+            </div>
         </div>
     </main>
 </body>

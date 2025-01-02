@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>My Acknowledgements - Proof of Peacemaking</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <style>
+        .acknowledgements-list {
+            margin: 2rem 0;
+        }
+        .acknowledgement-card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .expression-content {
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+        .acknowledgement-meta {
+            display: flex;
+            justify-content: space-between;
+            color: #888;
+            font-size: 0.9rem;
+        }
+        .creator-info {
+            color: #4CAF50;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #888;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    {{ template "navbar" . }}
+
+    <main class="main-content">
+        <div class="container">
+            <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+            <div class="dashboard-header">
+                <h1>My Acknowledgements</h1>
+            </div>
+
+            <div class="acknowledgements-list">
+                {{range .Acknowledgements}}
+                <div class="acknowledgement-card">
+                    <div class="expression-content">
+                        {{with (index $.Expressions .ExpressionID)}}
+                            {{range $type, $content := .Content}}
+                                {{if eq $type "text"}}
+                                    <p>{{$content}}</p>
+                                {{end}}
+                                {{if eq $type "image"}}
+                                    <img src="{{$content}}" alt="Expression image" style="max-width: 100%; height: auto;">
+                                {{end}}
+                                {{if eq $type "audio"}}
+                                    <audio controls src="{{$content}}"></audio>
+                                {{end}}
+                                {{if eq $type "video"}}
+                                    <video controls src="{{$content}}" style="max-width: 100%; height: auto;"></video>
+                                {{end}}
+                            {{end}}
+                        {{end}}
+                    </div>
+                    <div class="acknowledgement-meta">
+                        <span>Acknowledged on {{.CreatedAt.Format "Jan 02, 2006 15:04"}}</span>
+                        {{with (index $.Expressions .ExpressionID)}}
+                            <span class="creator-info">Created by {{.CreatorAddress}}</span>
+                        {{end}}
+                    </div>
+                </div>
+                {{else}}
+                <p>No acknowledgements found.</p>
+                {{end}}
+            </div>
+        </div>
+    </main>
+</body>
+</html> 
