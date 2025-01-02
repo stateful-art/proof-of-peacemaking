@@ -70,9 +70,12 @@
                 {{if not .User.Address}}
                 <div class="form-group wallet-section">
                     <label>Wallet</label>
-                    <button type="button" class="btn-metamask" onclick="startWalletConnection()">
+                    <button type="button" class="btn-metamask" id="connectWalletBtn" onclick="connectWalletToAccount()">
                         <img src="/static/img/metamask.svg" alt="MetaMask">
-                        Connect your wallet
+                        <span class="button-text">Connect your wallet</span>
+                        <div class="button-spinner" style="display: none;">
+                            <div class="spinner"></div>
+                        </div>
                     </button>
                     <div id="walletError" class="error-message" style="display: none; color: #ff4444; margin: 8px 0; text-align: center;"></div>
                 </div>
@@ -114,7 +117,7 @@
         });
     </script>
     <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
-    <script src="/static/js/wallet.js"></script>
+    <script src="/static/js/auth.js"></script>
     <script src="/static/js/account.js"></script>
 </body>
 </html> 
