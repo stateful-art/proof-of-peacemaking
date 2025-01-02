@@ -7,10 +7,9 @@
     </div>
     <div class="navbar-menu">
         <div class="nav-auth-items">
+            {{if .User}}
             <a href="/feed" class="nav-item">Feed</a>
             <a href="/dashboard" class="nav-item">Dashboard</a>
-        </div>
-        {{ if .User }}
             <div class="user-dropdown">
                 <button class="user-icon" id="userIcon">
                     <img src="/static/img/user.png" alt="User" width="24" height="24">
@@ -27,9 +26,10 @@
                     <a href="#" class="dropdown-item disconnect" onclick="disconnectWallet(); return false;">Disconnect</a>
                 </div>
             </div>
-        {{ else }}
+            {{else}}
             <button class="action-button" id="connectWallet">Enter</button>
-        {{ end }}
+            {{end}}
+        </div>
     </div>
 </nav>
 {{ end }} 
