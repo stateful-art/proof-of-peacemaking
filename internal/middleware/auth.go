@@ -64,3 +64,25 @@ func (m *AuthMiddleware) Authenticate() fiber.Handler {
 		return c.Next()
 	}
 }
+
+func (m *AuthMiddleware) Optional() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		// Get session cookie
+		sessionCookie := c.Cookies("session")
+		if sessionCookie == "" {
+			// No session cookie, continue without user data
+			return c.Next()
+		}
+
+		// Verify session token
+		userIdentifier, err := m.authService.VerifyToken(c.Context(), sessionCookie)
+		if err != nil {
+			// Invalid session, continue without user data
+			return c.Next()
+		}
+
+		// Set user identifier in context
+		c.Locals("userAddress", userIdentifier)
+		return c.Next()
+	}
+}

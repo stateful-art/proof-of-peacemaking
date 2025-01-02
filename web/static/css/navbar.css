@@ -189,9 +189,9 @@
 }
 
 .nav-auth-items {
-  display: none;
+  display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 1rem;
 }
 
 .nav-auth-items.visible {

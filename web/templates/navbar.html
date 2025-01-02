@@ -6,7 +6,7 @@
         </a>
     </div>
     <div class="navbar-menu">
-        <div class="nav-auth-items {{ if .User }}visible{{ end }}">
+        <div class="nav-auth-items">
             <a href="/feed" class="nav-item">Feed</a>
             <a href="/dashboard" class="nav-item">Dashboard</a>
         </div>
@@ -29,10 +29,6 @@
             </div>
         {{ else }}
             <button class="action-button" id="connectWallet">Enter</button>
-            <div id="loadingSpinner" class="loading-spinner" style="display: none;">
-                <div class="spinner"></div>
-                <span>Confirming...</span>
-            </div>
         {{ end }}
     </div>
 </nav>

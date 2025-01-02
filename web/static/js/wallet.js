@@ -17,9 +17,17 @@ let signer;
 let isConnected = false;
 let currentAddress = null;
 
+// Cache the session state
+let cachedSessionState = null;
+
 // Check if user is already authenticated
 async function checkSession() {
     try {
+        // If we have cached state and an existing user icon, use it immediately
+        if (cachedSessionState && document.getElementById('userIcon')) {
+            return cachedSessionState.authenticated;
+        }
+
         const response = await fetch('/auth/session', {
             method: 'GET',
             credentials: 'include'
@@ -27,6 +35,9 @@ async function checkSession() {
         
         const data = await response.json();
         console.log('[AUTH] Session check response:', data);
+        
+        // Cache the session state
+        cachedSessionState = data;
         
         if (data.authenticated && data.address) {
             isConnected = true;
@@ -36,12 +47,6 @@ async function checkSession() {
             const enterButton = document.getElementById('connectWallet');
             if (enterButton) {
                 updateWalletButton(data.address);
-            }
-            
-            // Show nav items
-            const navAuthItems = document.querySelector('.nav-auth-items');
-            if (navAuthItems) {
-                navAuthItems.classList.add('visible');
             }
 
             // Hide auth modal if it's open
@@ -149,7 +154,7 @@ async function connectWallet() {
 // Add disconnect function
 async function disconnectWallet() {
     try {
-        // Just call logout endpoint, no need to update wallet status for email auth
+        cachedSessionState = null;
         const response = await fetch('/auth/logout', {
             method: 'POST',
             credentials: 'include'
@@ -162,7 +167,7 @@ async function disconnectWallet() {
         }
     } catch (error) {
         console.error('Error during logout:', error);
-        window.location.reload(); // Reload anyway to ensure clean state
+        window.location.reload();
     }
 }
 
@@ -170,6 +175,20 @@ async function disconnectWallet() {
 function updateWalletButton(address) {
     console.log('[AUTH] Updating wallet button for address:', address);
     const walletButton = document.getElementById('connectWallet');
+    const existingUserIcon = document.getElementById('userIcon');
+
+    // If we already have a user icon, just update its state if needed
+    if (existingUserIcon) {
+        const dropdown = existingUserIcon.nextElementSibling;
+        if (dropdown && address) {
+            const walletInfo = dropdown.querySelector('.wallet-address');
+            if (walletInfo) {
+                walletInfo.textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
+            }
+        }
+        return;
+    }
+
     if (!walletButton) {
         console.log('[AUTH] Wallet button not found');
         return;
@@ -179,8 +198,9 @@ function updateWalletButton(address) {
         // If no address, set up the Enter button
         walletButton.innerHTML = 'Enter';
         walletButton.className = 'action-button';
-        // Add click handler for auth modal
-        walletButton.onclick = () => {
+        walletButton.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const authModal = document.getElementById('authModal');
             if (authModal) {
                 authModal.classList.add('active');
@@ -192,7 +212,7 @@ function updateWalletButton(address) {
     const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
     console.log('[AUTH] Creating user dropdown with address:', shortAddress);
 
-    // Replace the button with a user dropdown
+    // Create user dropdown with preventDefault on all clickable elements
     const userDropdown = document.createElement('div');
     userDropdown.className = 'user-dropdown';
     userDropdown.innerHTML = `
@@ -203,22 +223,16 @@ function updateWalletButton(address) {
             <div class="wallet-info">
                 <div class="wallet-address">${shortAddress}</div>
             </div>
-            <a href="/account" class="dropdown-item">Account</a>
-            <a href="#" class="dropdown-item disconnect" onclick="disconnectWallet(); return false;">Disconnect</a>
+            <a href="/account" class="dropdown-item" onclick="event.preventDefault(); window.location.href='/account';">Account</a>
+            <a href="#" class="dropdown-item disconnect" onclick="event.preventDefault(); disconnectWallet(); return false;">Disconnect</a>
         </div>
     `;
 
     // Replace the existing button with the new dropdown
     walletButton.parentNode.replaceChild(userDropdown, walletButton);
 
-    // Add click handler for the new user icon
+    // Add click handler for the new user icon with preventDefault
     setupUserIconHandlers(userDropdown);
-    
-    // Show nav items
-    const navAuthItems = document.querySelector('.nav-auth-items');
-    if (navAuthItems) {
-        navAuthItems.classList.add('visible');
-    }
 }
 
 // Setup user icon click handlers
@@ -241,8 +255,9 @@ function setupUserIconHandlers(userDropdownOrIcon) {
     const newUserIcon = userIcon.cloneNode(true);
     userIcon.parentNode.replaceChild(newUserIcon, userIcon);
 
-    // Add click handler for the user icon
+    // Add click handler for the user icon with preventDefault
     newUserIcon.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
     });

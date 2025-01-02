@@ -2,6 +2,7 @@ package routes
 
 import (
 	"log"
+	"proofofpeacemaking/internal/core/domain"
 	"proofofpeacemaking/internal/handlers"
 	"proofofpeacemaking/internal/middleware"
 	"strings"
@@ -83,16 +84,52 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	newsletterHandler := handlers.NewNewsletterHandler(h.Newsletter.GetNewsletterService())
 
 	// Home page (public)
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.Render("index", fiber.Map{
+	app.Get("/", authMiddleware.Optional(), func(c *fiber.Ctx) error {
+		data := fiber.Map{
 			"Title": "Proof of Peacemaking",
-		}, "")
+		}
+
+		// Add user data if available
+		if userIdentifier := c.Locals("userAddress"); userIdentifier != nil {
+			if identifier, ok := userIdentifier.(string); ok && identifier != "" {
+				var user *domain.User
+				var err error
+				if strings.Contains(identifier, "@") {
+					user, err = h.User.GetUserService().GetUserByEmail(c.Context(), identifier)
+				} else {
+					user, err = h.User.GetUserService().GetUserByAddress(c.Context(), identifier)
+				}
+				if err == nil && user != nil {
+					data["User"] = fiber.Map{"Email": user.Email, "Address": user.Address}
+				}
+			}
+		}
+
+		return c.Render("index", data, "")
 	})
 
-	app.Get("/learn", func(c *fiber.Ctx) error {
-		return c.Render("learn", fiber.Map{
+	app.Get("/learn", authMiddleware.Optional(), func(c *fiber.Ctx) error {
+		data := fiber.Map{
 			"Title": "Proof of Peacemaking",
-		}, "")
+		}
+
+		// Add user data if available
+		if userIdentifier := c.Locals("userAddress"); userIdentifier != nil {
+			if identifier, ok := userIdentifier.(string); ok && identifier != "" {
+				var user *domain.User
+				var err error
+				if strings.Contains(identifier, "@") {
+					user, err = h.User.GetUserService().GetUserByEmail(c.Context(), identifier)
+				} else {
+					user, err = h.User.GetUserService().GetUserByAddress(c.Context(), identifier)
+				}
+				if err == nil && user != nil {
+					data["User"] = fiber.Map{"Email": user.Email, "Address": user.Address}
+				}
+			}
+		}
+
+		return c.Render("learn", data, "")
 	})
 
 	app.Post("/join-newsletter", newsletterHandler.HandleNewsletterRegistration)

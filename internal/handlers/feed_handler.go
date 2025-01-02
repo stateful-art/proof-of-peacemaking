@@ -85,7 +85,7 @@ func (h *FeedHandler) HandleFeed(c *fiber.Ctx) error {
 
 	data := fiber.Map{
 		"Title":       "Feed",
-		"UserAddress": userIdentifier,
+		"User":        fiber.Map{"Email": user.Email, "Address": user.Address},
 		"Expressions": expressions,
 	}
 
