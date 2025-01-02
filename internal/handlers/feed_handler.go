@@ -5,6 +5,7 @@ import (
 	"proofofpeacemaking/internal/core/domain"
 	"proofofpeacemaking/internal/core/ports"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -62,23 +63,34 @@ func (h *FeedHandler) HandleFeed(c *fiber.Ctx) error {
 	for i, activity := range activities {
 		// Check if the current user has acknowledged this expression
 		acks := activity["Acknowledgements"].([]*domain.Acknowledgement)
-		isAcknowledged := false
+		hasActiveAck := false
 		activeCount := 0
+		userAckStatus := ""
+
 		for _, ack := range acks {
 			if ack.Status == domain.AcknowledgementStatusActive {
 				activeCount++
-				if ack.Acknowledger == user.ID.Hex() {
-					isAcknowledged = true
+			}
+			// Track the user's acknowledgment status regardless of whether it's active
+			if ack.Acknowledger == user.ID.Hex() {
+				userAckStatus = string(ack.Status)
+				if ack.Status == domain.AcknowledgementStatusActive {
+					hasActiveAck = true
 				}
 			}
 		}
+
+		// Format timestamp
+		timestamp := activity["Timestamp"].(time.Time)
+		formattedTime := timestamp.Format("Jan 02, 2006 15:04")
 
 		expressions[i] = fiber.Map{
 			"ID":                         activity["ID"],
 			"CreatorAddress":             activity["CreatorAddress"],
 			"Content":                    activity["Content"],
-			"Timestamp":                  activity["Timestamp"],
-			"IsAcknowledged":             isAcknowledged,
+			"Timestamp":                  formattedTime,
+			"HasActiveAck":               hasActiveAck,
+			"UserAckStatus":              userAckStatus,
 			"ActiveAcknowledgementCount": activeCount,
 		}
 	}

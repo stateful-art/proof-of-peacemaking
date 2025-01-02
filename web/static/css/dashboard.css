@@ -99,4 +99,76 @@
 .activity-message {
     color: var(--text-primary);
     line-height: 1.4;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.stat-item {
+    background: #1a1a1a;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.stat-item h3 {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-item p {
+    color: #fff;
+    font-size: 2rem;
+    margin: 0;
+}
+
+.stat-breakdown {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.stat-detail {
+    margin: 0 0.5rem;
+}
+
+.acknowledgement-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    color: #888;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+}
+
+.meta-left, .meta-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.refuted-status {
+    color: #ff4444;
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    text-transform: lowercase;
+}
+
+.status-badge.status-ACTIVE {
+    background: #4CAF50;
+    color: #fff;
+}
+
+.status-badge.status-REFUTED {
+    background: #ff4444;
+    color: #fff;
 } 

@@ -89,23 +89,28 @@ func (h *DashboardHandler) GetDashboard(c *fiber.Ctx) error {
 		acknowledgementsMade = []*domain.Acknowledgement{} // Use empty slice instead of failing
 	}
 
-	// Count active acknowledgments and unique expressions acknowledged
-	totalAcksMade := 0
+	// Count acknowledgments by status
+	activeAcks := 0
+	refutedAcks := 0
 	uniqueExpressionsAcked := make(map[string]bool)
 	uniqueCreatorsAcked := make(map[string]bool)
 
 	for _, ack := range acknowledgementsMade {
-		if ack.Status == domain.AcknowledgementStatusActive {
-			totalAcksMade++
-			uniqueExpressionsAcked[ack.ExpressionID] = true
+		uniqueExpressionsAcked[ack.ExpressionID] = true
 
-			// Get expression to find its creator
-			expr, err := h.expressionService.Get(c.Context(), ack.ExpressionID)
-			if err != nil {
-				log.Printf("[DASHBOARD] Error fetching expression %s: %v", ack.ExpressionID, err)
-				continue
-			}
-			uniqueCreatorsAcked[expr.Creator] = true
+		// Get expression to find its creator
+		expr, err := h.expressionService.Get(c.Context(), ack.ExpressionID)
+		if err != nil {
+			log.Printf("[DASHBOARD] Error fetching expression %s: %v", ack.ExpressionID, err)
+			continue
+		}
+		uniqueCreatorsAcked[expr.Creator] = true
+
+		// Count by status
+		if ack.Status == domain.AcknowledgementStatusActive {
+			activeAcks++
+		} else if ack.Status == domain.AcknowledgementStatusRefuted {
+			refutedAcks++
 		}
 	}
 
@@ -117,7 +122,9 @@ func (h *DashboardHandler) GetDashboard(c *fiber.Ctx) error {
 	}
 
 	acknowledgementStats := fiber.Map{
-		"TotalAcknowledgements": totalAcksMade,
+		"TotalAcknowledgements": len(acknowledgementsMade),
+		"ActiveAcks":            activeAcks,
+		"RefutedAcks":           refutedAcks,
 		"UniqueExpressions":     len(uniqueExpressionsAcked),
 		"UniqueCreators":        len(uniqueCreatorsAcked),
 	}
@@ -240,4 +247,74 @@ func (h *DashboardHandler) GetAcknowledgements(c *fiber.Ctx) error {
 	}
 
 	return c.Render("dashboard_acknowledgements", data, "")
+}
+
+func (h *DashboardHandler) GetDashboardStats(c *fiber.Ctx) error {
+	userIdentifier := c.Locals("userAddress").(string)
+	if userIdentifier == "" {
+		return c.Redirect("/")
+	}
+
+	var user *domain.User
+	var err error
+
+	if strings.Contains(userIdentifier, "@") {
+		user, err = h.userService.GetUserByEmail(c.Context(), userIdentifier)
+	} else {
+		user, err = h.userService.GetUserByAddress(c.Context(), userIdentifier)
+	}
+
+	if err != nil {
+		return c.Render("error", fiber.Map{
+			"Error": "Failed to get user data",
+		})
+	}
+
+	// Get user's expressions
+	expressions, err := h.expressionService.ListByUser(c.Context(), user.ID.Hex())
+	if err != nil {
+		return c.Render("error", fiber.Map{
+			"Error": "Failed to get expressions",
+		})
+	}
+
+	// Get user's acknowledgments
+	acknowledgments, err := h.acknowledgementService.ListByUser(c.Context(), user.ID.Hex())
+	if err != nil {
+		return c.Render("error", fiber.Map{
+			"Error": "Failed to get acknowledgments",
+		})
+	}
+
+	// Count acknowledgments by status
+	ackStats := make(map[string]int)
+	uniqueExpressions := make(map[string]bool)
+	uniqueCreators := make(map[string]bool)
+
+	for _, ack := range acknowledgments {
+		// Count by status
+		ackStats[string(ack.Status)]++
+
+		// Track unique expressions
+		uniqueExpressions[ack.ExpressionID] = true
+
+		// Get expression to track creator
+		expr, err := h.expressionService.Get(c.Context(), ack.ExpressionID)
+		if err == nil && expr != nil {
+			uniqueCreators[expr.CreatorAddress] = true
+		}
+	}
+
+	data := fiber.Map{
+		"Title":             "Dashboard",
+		"User":              fiber.Map{"Email": user.Email, "Address": user.Address},
+		"Expressions":       expressions,
+		"TotalAcks":         len(acknowledgments),
+		"ActiveAcks":        ackStats[string(domain.AcknowledgementStatusActive)],
+		"RefutedAcks":       ackStats[string(domain.AcknowledgementStatusRefuted)],
+		"UniqueExpressions": len(uniqueExpressions),
+		"UniqueCreators":    len(uniqueCreators),
+	}
+
+	return c.Render("dashboard", data)
 }

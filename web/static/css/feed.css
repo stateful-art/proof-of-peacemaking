@@ -40,14 +40,19 @@
 
 .feed-item-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
 }
 
 .creator-address {
-  font-family: monospace;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.timestamp {
+  color: #888;
+  font-size: 0.9rem;
 }
 
 .feed-item-content {
@@ -63,33 +68,30 @@
 }
 
 .acknowledge-button {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
-  border-radius: 9999px;
-  transition: all 0.2s;
-  background: white;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
 }
 
 .acknowledge-button:hover {
-  background: wheat;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .heart-icon {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  transition: all 0.2s;
+  width: 24px;
+  height: 24px;
+  fill: #666;
+  transition: fill 0.2s ease;
 }
 
 .heart-icon.acknowledged {
-  fill: rgb(249, 24, 128);
-  stroke: rgb(249, 24, 128);
+  fill: #ff4444;
 }
 
 .acknowledge-button.acknowledged {
@@ -107,7 +109,12 @@
 }
 
 .acknowledgement-count {
+  color: #888;
   font-size: 0.9rem;
+}
+
+.acknowledge-button:hover .heart-icon {
+  transform: scale(1.1);
 }
 
 /* Empty State */

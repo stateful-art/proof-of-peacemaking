@@ -25,6 +25,7 @@
                 <div class="feed-item">
                     <div class="feed-item-header">
                         <span class="creator-address">{{trimAddress .CreatorAddress}}</span>
+                        <span class="timestamp">{{.Timestamp}}</span>
                     </div>
                     <div class="feed-item-content">
                         {{.Content.text}}
@@ -51,9 +52,9 @@
                         {{end}}
                     </div>
                     <div class="feed-item-footer">
-                        {{if ne .CreatorAddress $.UserAddress}}
-                        <button class="acknowledge-button {{if .IsAcknowledged}}acknowledged{{end}} {{if gt .ActiveAcknowledgementCount 0}}has-active-acknowledgements{{end}}" data-expression-id="{{.ID}}">
-                            <svg class="heart-icon {{if .IsAcknowledged}}acknowledged{{end}}" viewBox="0 0 24 24">
+                        {{if ne .CreatorAddress $.User.Address}}
+                        <button class="acknowledge-button {{if eq .UserAckStatus `ACTIVE`}}acknowledged{{end}}" data-expression-id="{{.ID}}">
+                            <svg class="heart-icon {{if eq .UserAckStatus `ACTIVE`}}acknowledged{{end}}" viewBox="0 0 24 24">
                                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                             </svg>
                             <span class="acknowledgement-count">{{.ActiveAcknowledgementCount}}</span>
