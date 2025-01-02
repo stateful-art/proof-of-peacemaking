@@ -40,11 +40,18 @@ func (h *AcknowledgementHandler) Create(c *fiber.Ctx) error {
 	}
 
 	log.Printf("[ACK] Creating/updating acknowledgement for expression: %s", body.ExpressionID)
-	userAddress := c.Locals("userAddress").(string)
-	log.Printf("[ACK] User address from context: %s", userAddress)
+	userIdentifier := c.Locals("userAddress").(string)
+	log.Printf("[ACK] User identifier from context: %s", userIdentifier)
 
-	// Get user from address
-	user, err := h.userService.GetUserByAddress(c.Context(), userAddress)
+	// Get user by email or address
+	var user *domain.User
+	var err error
+	if strings.Contains(userIdentifier, "@") {
+		user, err = h.userService.GetUserByEmail(c.Context(), userIdentifier)
+	} else {
+		user, err = h.userService.GetUserByAddress(c.Context(), userIdentifier)
+	}
+
 	if err != nil {
 		log.Printf("[ACK] Error getting user: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -52,7 +59,7 @@ func (h *AcknowledgementHandler) Create(c *fiber.Ctx) error {
 		})
 	}
 	if user == nil {
-		log.Printf("[ACK] User not found for address: %s", userAddress)
+		log.Printf("[ACK] User not found for identifier: %s", userIdentifier)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "User not found",
 		})
@@ -81,8 +88,8 @@ func (h *AcknowledgementHandler) Create(c *fiber.Ctx) error {
 	}
 	log.Printf("[ACK] Found expression with creator: %s", expression.CreatorAddress)
 
-	// Prevent self-acknowledgements
-	if expression.CreatorAddress == userAddress {
+	// Prevent self-acknowledgements - compare user IDs instead of addresses
+	if expression.Creator == user.ID.Hex() {
 		log.Printf("[ACK] Attempted self-acknowledgement")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Cannot acknowledge your own expression",
