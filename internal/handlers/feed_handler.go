@@ -4,6 +4,7 @@ import (
 	"log"
 	"proofofpeacemaking/internal/core/domain"
 	"proofofpeacemaking/internal/core/ports"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -25,13 +26,22 @@ func (h *FeedHandler) GetFeedService() ports.FeedService {
 }
 
 func (h *FeedHandler) HandleFeed(c *fiber.Ctx) error {
-	userAddress := c.Locals("userAddress").(string)
-	if userAddress == "" {
+	userIdentifier := c.Locals("userAddress").(string)
+	if userIdentifier == "" {
 		return c.Redirect("/")
 	}
 
 	// Get user ID for acknowledgement comparison
-	user, err := h.userService.GetUserByAddress(c.Context(), userAddress)
+	var user *domain.User
+	var err error
+
+	// Check if the identifier is an email or wallet address
+	if strings.Contains(userIdentifier, "@") {
+		user, err = h.userService.GetUserByEmail(c.Context(), userIdentifier)
+	} else {
+		user, err = h.userService.GetUserByAddress(c.Context(), userIdentifier)
+	}
+
 	if err != nil {
 		log.Printf("Error getting user: %v", err)
 		return c.Render("error", fiber.Map{
@@ -75,7 +85,7 @@ func (h *FeedHandler) HandleFeed(c *fiber.Ctx) error {
 
 	data := fiber.Map{
 		"Title":       "Feed",
-		"UserAddress": userAddress,
+		"UserAddress": userIdentifier,
 		"Expressions": expressions,
 	}
 
