@@ -410,6 +410,128 @@ async function handleMetaMaskDisconnect() {
     window.location.reload();
 }
 
+async function connectWalletToAccount() {
+    console.log('Connecting wallet to account...');
+    const button = document.getElementById('connectWalletBtn');
+    const buttonText = button.querySelector('.button-text');
+    const spinner = button.querySelector('.button-spinner');
+    const originalText = buttonText.textContent;
+
+    // Function to reset button state
+    const resetButton = () => {
+        button.disabled = false;
+        buttonText.textContent = originalText;
+        spinner.style.display = 'none';
+    };
+
+    try {
+        // Disable button and show spinner
+        button.disabled = true;
+        buttonText.textContent = 'Connecting...';
+        spinner.style.display = 'block';
+
+        // Check if MetaMask is installed
+        if (typeof window.ethereum === 'undefined') {
+            throw new Error('Please install MetaMask to continue');
+        }
+
+        let accounts;
+        try {
+            // Request account access
+            accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        } catch (error) {
+            if (error.code === -32002) {
+                // MetaMask request already pending - don't show this error
+                resetButton();
+                return;
+            }
+            throw error;
+        }
+
+        const address = accounts[0];
+        if (!address) {
+            throw new Error('No account selected');
+        }
+
+        // Get nonce for the wallet
+        console.log('Requesting nonce for address:', address);
+        const nonceResponse = await fetch('/api/users/wallet-nonce', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ address }),
+            credentials: 'include'
+        });
+
+        let responseData;
+        try {
+            responseData = await nonceResponse.json();
+        } catch (error) {
+            console.error('Failed to parse nonce response:', error);
+            throw new Error('Server error: Failed to get nonce');
+        }
+
+        if (!nonceResponse.ok) {
+            console.error('Nonce request failed:', responseData);
+            throw new Error(responseData.error || 'Failed to get nonce');
+        }
+
+        const { nonce } = responseData;
+        if (!nonce) {
+            throw new Error('No nonce received from server');
+        }
+
+        console.log('Got nonce, requesting signature...');
+        // Request signature
+        const message = `Connect this wallet to your account. Nonce: ${nonce}`;
+        const signature = await window.ethereum.request({
+            method: 'personal_sign',
+            params: [message, address]
+        });
+
+        console.log('Got signature, connecting wallet...');
+        // Connect wallet to account
+        const connectResponse = await fetch('/api/users/connect-wallet', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                address,
+                signature,
+                nonce
+            }),
+            credentials: 'include'
+        });
+
+        let connectData;
+        try {
+            connectData = await connectResponse.json();
+        } catch (error) {
+            console.error('Failed to parse connect response:', error);
+            throw new Error('Server error: Failed to connect wallet');
+        }
+
+        if (!connectResponse.ok) {
+            console.error('Connect request failed:', connectData);
+            throw new Error(connectData.error || 'Failed to connect wallet');
+        }
+
+        // Reload page to show updated wallet status
+        window.location.reload();
+
+    } catch (error) {
+        console.error('Error connecting wallet:', error);
+        resetButton();
+        
+        // Show error message
+        window.dispatchEvent(new CustomEvent('walletError', {
+            detail: { message: error.message || 'Failed to connect wallet' }
+        }));
+    }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Auth.js DOMContentLoaded event fired');

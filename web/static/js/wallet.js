@@ -203,7 +203,7 @@ function updateWalletButton(address) {
             <div class="wallet-info">
                 <div class="wallet-address">${shortAddress}</div>
             </div>
-            <a href="/account" class="dropdown-item">Settings</a>
+            <a href="/account" class="dropdown-item">Account</a>
             <a href="#" class="dropdown-item disconnect" onclick="disconnectWallet(); return false;">Disconnect</a>
         </div>
     `;
@@ -222,9 +222,20 @@ function updateWalletButton(address) {
 }
 
 // Setup user icon click handlers
-function setupUserIconHandlers(userDropdown) {
-    const userIcon = userDropdown.querySelector('.user-icon');
+function setupUserIconHandlers(userDropdownOrIcon) {
+    // If we're passed a user icon directly (from navbar template)
+    const userIcon = userDropdownOrIcon.classList.contains('user-icon') 
+        ? userDropdownOrIcon 
+        : userDropdownOrIcon.querySelector('.user-icon');
+
     if (!userIcon) return;
+
+    // Find the dropdown content - either sibling or child
+    const dropdown = userIcon.classList.contains('user-icon')
+        ? userIcon.nextElementSibling
+        : userDropdownOrIcon.querySelector('.dropdown-content');
+
+    if (!dropdown) return;
 
     // Remove any existing click handlers
     const newUserIcon = userIcon.cloneNode(true);
@@ -233,19 +244,13 @@ function setupUserIconHandlers(userDropdown) {
     // Add click handler for the user icon
     newUserIcon.addEventListener('click', (e) => {
         e.stopPropagation();
-        const dropdown = userDropdown.querySelector('.dropdown-content');
-        if (dropdown) {
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-        }
+        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
     });
 
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
-        if (!userDropdown.contains(e.target)) {
-            const dropdown = userDropdown.querySelector('.dropdown-content');
-            if (dropdown) {
-                dropdown.style.display = 'none';
-            }
+        if (!dropdown.contains(e.target) && !newUserIcon.contains(e.target)) {
+            dropdown.style.display = 'none';
         }
     });
 }
@@ -296,25 +301,15 @@ window.startWalletConnection = async function() {
 }
 
 // Update the event listeners
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     console.log('Wallet.js DOMContentLoaded event fired');
     
-    // Check session status on page load - only once
-    const hasSession = await checkSession();
-
-    // Initialize the Enter button if user is not connected
-    if (!hasSession) {
-        const enterButton = document.getElementById('connectWallet');
-        if (enterButton && !enterButton.getAttribute('data-initialized')) {
-            enterButton.innerHTML = 'Enter';
-            enterButton.className = 'action-button';
-            // Add click handler for auth modal
-            enterButton.onclick = () => {
-                const authModal = document.getElementById('authModal');
-                if (authModal) {
-                    authModal.classList.add('active');
-                }
-            };
-        }
+    // Check for existing user icon in navbar
+    const existingUserIcon = document.getElementById('userIcon');
+    if (existingUserIcon) {
+        setupUserIconHandlers(existingUserIcon);
     }
+    
+    // Check session for wallet button update
+    checkSession();
 }); 
