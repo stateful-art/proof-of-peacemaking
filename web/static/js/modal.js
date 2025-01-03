@@ -141,9 +141,13 @@ class ExpressionForm {
         if (videoBtn) videoBtn.disabled = this.hasVideo;
         if (imageBtn) imageBtn.disabled = this.hasImage;
 
-        // Update recording button text
-        if (audioBtn) audioBtn.textContent = this.isRecording && this.currentMediaType === 'audio' ? 'Stop Recording' : 'Record Audio';
-        if (videoBtn) videoBtn.textContent = this.isRecording && this.currentMediaType === 'video' ? 'Stop Recording' : 'Record Video';
+        // Update button states
+        if (audioBtn) {
+            audioBtn.classList.toggle('recording', this.isRecording && this.currentMediaType === 'audio');
+        }
+        if (videoBtn) {
+            videoBtn.classList.toggle('recording', this.isRecording && this.currentMediaType === 'video');
+        }
     }
 
     cancelMedia(type) {
@@ -365,8 +369,9 @@ class ExpressionForm {
         
         const formData = new FormData();
         
-        // Add text content
-        formData.append('textContent', this.form.querySelector('textarea[name="textContent"]').value);
+        // Get text content from contenteditable div
+        const textContent = this.form.querySelector('.text-input').innerText.trim();
+        formData.append('textContent', textContent);
         
         // Add image if exists
         const imageInput = document.getElementById('imageInput');
