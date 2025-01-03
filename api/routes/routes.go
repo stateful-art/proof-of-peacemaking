@@ -21,19 +21,19 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	}))
 
 	// Add cache control headers for HTML templates
-	app.Use(func(c *fiber.Ctx) error {
-		path := c.Path()
-		// Add no-cache headers for HTML pages and critical assets
-		if path == "/" || path == "/learn" || path == "/feed" || path == "/account" || path == "/dashboard" ||
-			path == "/static/css/navbar.css" ||
-			strings.HasPrefix(path, "/static/css/") ||
-			strings.HasPrefix(path, "/static/js/") {
-			c.Set("Cache-Control", "no-cache, must-revalidate")
-			c.Set("Pragma", "no-cache")
-			c.Set("Expires", "0")
-		}
-		return c.Next()
-	})
+	// app.Use(func(c *fiber.Ctx) error {
+	// 	path := c.Path()
+	// 	// Add no-cache headers for HTML pages and critical assets
+	// 	if path == "/" || path == "/learn" || path == "/feed" || path == "/account" || path == "/dashboard" ||
+	// 		path == "/static/css/navbar.css" ||
+	// 		strings.HasPrefix(path, "/static/css/") ||
+	// 		strings.HasPrefix(path, "/static/js/") {
+	// 		c.Set("Cache-Control", "no-cache, must-revalidate")
+	// 		c.Set("Pragma", "no-cache")
+	// 		c.Set("Expires", "0")
+	// 	}
+	// 	return c.Next()
+	// })
 
 	// Add error handling middleware
 	app.Use(func(c *fiber.Ctx) error {
