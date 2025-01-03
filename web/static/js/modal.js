@@ -183,7 +183,6 @@ class ExpressionForm {
         const container = document.createElement('div');
         container.classList.add('media-container');
         container.dataset.mediaType = type;
-        container.style.position = 'relative'; // Ensure container is relative
 
         const cancelBtn = document.createElement('button');
         cancelBtn.type = 'button';
@@ -191,25 +190,33 @@ class ExpressionForm {
         cancelBtn.dataset.type = type;
         cancelBtn.innerHTML = '×';
         cancelBtn.title = 'Remove ' + type;
-        
-        // Position relative to container
-        cancelBtn.style.position = 'absolute';
-        cancelBtn.style.top = '-10px';
-        cancelBtn.style.right = '-10px';
-        cancelBtn.style.zIndex = '10000';
-        cancelBtn.style.width = '20px';
-        cancelBtn.style.height = '20px';
-        cancelBtn.style.borderRadius = '50px';
-        cancelBtn.style.backgroundColor = 'white';
-        cancelBtn.style.color = 'black';
-        cancelBtn.style.border = 'none';
-        cancelBtn.style.cursor = 'pointer';
-        cancelBtn.style.display = 'flex';
-        cancelBtn.style.alignItems = 'center';
-        cancelBtn.style.justifyContent = 'center';
 
         container.appendChild(cancelBtn);
         return container;
+    }
+
+    createAudioPlayer() {
+        const audioPlayer = document.createElement('div');
+        audioPlayer.className = 'audio-player';
+        audioPlayer.innerHTML = `
+            <button type="button" class="play-button">
+                <i class="fa-solid fa-play"></i>
+            </button>
+            <div class="audio-controls">
+                <span class="time-info current-time">0:00</span>
+                <div class="audio-progress">
+                    <div class="progress-bar"></div>
+                </div>
+                <span class="time-info duration">0:00</span>
+            </div>
+            <div class="volume-control">
+                <i class="fa-solid fa-volume-high volume-icon"></i>
+                <div class="volume-slider">
+                    <div class="volume-level" style="width: 100%"></div>
+                </div>
+            </div>
+        `;
+        return audioPlayer;
     }
 
     async startRecording(mediaType) {
@@ -257,6 +264,12 @@ class ExpressionForm {
                 previewVideo.muted = true;
                 previewVideo.classList.add('media-preview');
                 container.appendChild(previewVideo);
+            } else if (mediaType === 'audio') {
+                const audio = document.createElement('audio');
+                audio.classList.add('audio-element');
+                container.appendChild(audio);
+                container.appendChild(this.createAudioPlayer());
+                this.initializeAudioPlayer(container);
             }
             
             const options = {
@@ -280,20 +293,31 @@ class ExpressionForm {
                 });
                 const url = URL.createObjectURL(blob);
                 
-                const mediaElement = document.createElement(mediaType);
-                mediaElement.src = url;
-                mediaElement.controls = true;
-                mediaElement.autoplay = false;
-                mediaElement.classList.add('media-preview');
-                
-                // Find the container for this media type and replace its contents
+                // Find the container for this media type
                 const container = document.querySelector(`[data-media-type="${mediaType}"]`);
                 if (container) {
                     // Keep the cancel button
                     const cancelBtn = container.querySelector('.cancel-media');
                     container.innerHTML = '';
                     container.appendChild(cancelBtn);
-                    container.appendChild(mediaElement);
+
+                    if (mediaType === 'audio') {
+                        const audio = document.createElement('audio');
+                        audio.src = url;
+                        audio.classList.add('audio-element');
+                        container.appendChild(audio);
+                        
+                        const audioPlayer = this.createAudioPlayer();
+                        container.appendChild(audioPlayer);
+                        this.initializeAudioPlayer(container);
+                    } else {
+                        const video = document.createElement('video');
+                        video.src = url;
+                        video.controls = true;
+                        video.autoplay = false;
+                        video.classList.add('media-preview');
+                        container.appendChild(video);
+                    }
                 }
 
                 if (mediaType === 'audio') {
@@ -313,6 +337,93 @@ class ExpressionForm {
             document.getElementById('mediaError').textContent = 
                 'Error accessing media devices. Please ensure you have given permission.';
         }
+    }
+
+    initializeAudioPlayer(container) {
+        const audio = container.querySelector('.audio-element');
+        const player = container.querySelector('.audio-player');
+        const playButton = player.querySelector('.play-button');
+        const playIcon = playButton.querySelector('i');
+        const progress = player.querySelector('.progress-bar');
+        const currentTimeEl = player.querySelector('.current-time');
+        const durationEl = player.querySelector('.duration');
+        const volumeIcon = player.querySelector('.volume-icon');
+        const volumeLevel = player.querySelector('.volume-level');
+        const volumeSlider = player.querySelector('.volume-slider');
+        const progressBar = player.querySelector('.audio-progress');
+
+        // Format time in MM:SS
+        const formatTime = time => {
+            const minutes = Math.floor(time / 60);
+            const seconds = Math.floor(time % 60);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        };
+
+        // Update progress bar
+        audio.addEventListener('timeupdate', () => {
+            const percent = (audio.currentTime / audio.duration) * 100;
+            progress.style.width = percent + '%';
+            currentTimeEl.textContent = formatTime(audio.currentTime);
+        });
+
+        // Set duration when metadata is loaded
+        audio.addEventListener('loadedmetadata', () => {
+            durationEl.textContent = formatTime(audio.duration);
+        });
+
+        // Play/Pause
+        playButton.addEventListener('click', () => {
+            if (audio.paused) {
+                audio.play();
+                playIcon.classList.replace('fa-play', 'fa-pause');
+            } else {
+                audio.pause();
+                playIcon.classList.replace('fa-pause', 'fa-play');
+            }
+        });
+
+        // Click on progress bar
+        progressBar.addEventListener('click', e => {
+            const rect = progressBar.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            audio.currentTime = percent * audio.duration;
+        });
+
+        // Volume control
+        volumeSlider.addEventListener('click', e => {
+            const rect = volumeSlider.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            audio.volume = percent;
+            volumeLevel.style.width = (percent * 100) + '%';
+            updateVolumeIcon(percent);
+        });
+
+        // Update volume icon based on level
+        const updateVolumeIcon = (volume) => {
+            volumeIcon.className = 'fa-solid volume-icon ' + 
+                (volume === 0 ? 'fa-volume-xmark' :
+                 volume < 0.5 ? 'fa-volume-low' : 
+                 'fa-volume-high');
+        };
+
+        // Toggle mute on volume icon click
+        volumeIcon.addEventListener('click', () => {
+            audio.muted = !audio.muted;
+            if (audio.muted) {
+                volumeLevel.style.width = '0%';
+                volumeIcon.className = 'fa-solid fa-volume-xmark volume-icon';
+            } else {
+                volumeLevel.style.width = (audio.volume * 100) + '%';
+                updateVolumeIcon(audio.volume);
+            }
+        });
+
+        // Reset when audio ends
+        audio.addEventListener('ended', () => {
+            playIcon.classList.replace('fa-pause', 'fa-play');
+            progress.style.width = '0%';
+            currentTimeEl.textContent = '0:00';
+        });
     }
 
     async stopRecording() {

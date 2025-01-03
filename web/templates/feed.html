@@ -43,10 +43,27 @@
                             {{end}}
                             {{if .Content.audio}}
                             <div class="media-content">
-                                <audio controls>
+                                <audio class="audio-element">
                                     <source src="{{.Content.audio}}" type="audio/webm">
-                                    Your browser does not support the audio element.
                                 </audio>
+                                <div class="audio-player">
+                                    <button type="button" class="play-button">
+                                        <i class="fa-solid fa-play"></i>
+                                    </button>
+                                    <div class="audio-controls">
+                                        <span class="time-info current-time">0:00</span>
+                                        <div class="audio-progress">
+                                            <div class="progress-bar"></div>
+                                        </div>
+                                        <span class="time-info duration">0:00</span>
+                                    </div>
+                                    <div class="volume-control">
+                                        <i class="fa-solid fa-volume-high volume-icon"></i>
+                                        <div class="volume-slider">
+                                            <div class="volume-level" style="width: 100%"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             {{end}}
                             {{if .Content.video}}
@@ -83,7 +100,9 @@
             <form id="expressionForm">
                 <div class="text-input" contenteditable="true" data-placeholder="What's happening?" name="textContent"></div>
                 
-                <div class="preview" id="mediaPreview"></div>
+                <div class="preview" id="mediaPreview">
+                    <!-- Audio preview will be dynamically added here with the same player structure -->
+                </div>
                 <div id="mediaError"></div>
 
                 <div class="form-group">
