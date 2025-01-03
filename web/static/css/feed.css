@@ -187,3 +187,23 @@
   margin: 0 auto;
   padding: 2rem 1rem;
 }
+
+.media-content {
+    margin: 1rem 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.media-content img {
+    width: 95%;
+    height: auto;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.media-content video,
+.media-content audio {
+    width: 95%;
+    border-radius: 8px;
+}

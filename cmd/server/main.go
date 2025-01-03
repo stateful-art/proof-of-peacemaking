@@ -103,7 +103,7 @@ func main() {
 	// Setup template engine
 	engine := initTemplateEngine()
 	engine.Reload(true) // Enable this for development
-	engine.Debug(true)  // Enable debug mode for development
+	// engine.Debug(true)  // Enable debug mode for development
 
 	// Add template functions
 	engine.AddFunc("formatDate", func(date time.Time) string {

@@ -101,6 +101,6 @@ func (h *FeedHandler) HandleFeed(c *fiber.Ctx) error {
 		"Expressions": expressions,
 	}
 
-	log.Printf("[FEED] Data being passed to template: %+v", data)
+	// log.Printf("[FEED] Data being passed to template: %+v", data)
 	return c.Render("feed", data)
 }

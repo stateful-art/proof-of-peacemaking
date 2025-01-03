@@ -251,4 +251,50 @@
 .modal-header,
 .close-button {
     display: none !important;
+}
+
+.media-container {
+    position: relative;
+    margin: 10px 0;
+    padding: 5px;
+    border-radius: 8px;
+    background: #1a1a1a;
+}
+
+.media-preview {
+    width: 95%;
+    margin: 0 auto;
+    display: block;
+    border-radius: 6px;
+}
+
+.cancel-media {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.cancel-media:hover {
+    background: rgba(255, 0, 0, 0.4);
+}
+
+/* Disable button styles */
+.btn-record:disabled,
+#imageUpload:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 } 

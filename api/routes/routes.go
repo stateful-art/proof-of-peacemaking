@@ -55,8 +55,6 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 		log.Printf("[REQUEST] %s %s", method, path)
 		if method == "GET" {
 			log.Printf("[QUERY] %s", c.Context().QueryArgs().String())
-		} else if method == "POST" {
-			log.Printf("[BODY] %s", string(c.Body()))
 		}
 
 		err := c.Next()
