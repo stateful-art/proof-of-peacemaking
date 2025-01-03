@@ -256,9 +256,9 @@
 .media-container {
     position: relative;
     margin: 10px 0;
-    padding: 5px;
+    padding: 10px;
     border-radius: 8px;
-    background: #1a1a1a;
+    background: var(--bg-secondary);
 }
 
 .media-preview {
@@ -270,26 +270,28 @@
 
 .cancel-media {
     position: absolute;
-    top: 5px;
-    right: 5px;
+    top: -10px;
+    right: -10px;
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
+    background: black;
     border: none;
     color: white;
-    font-size: 18px;
+    font-size: 20px;
     line-height: 1;
     cursor: pointer;
-    z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.2s;
+    z-index: 10;
+    padding: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .cancel-media:hover {
-    background: rgba(255, 0, 0, 0.4);
+    background: wheat;
+    color: black;
 }
 
 /* Disable button styles */

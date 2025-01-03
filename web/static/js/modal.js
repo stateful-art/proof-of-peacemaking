@@ -179,6 +179,7 @@ class ExpressionForm {
         const container = document.createElement('div');
         container.classList.add('media-container');
         container.dataset.mediaType = type;
+        container.style.position = 'relative'; // Ensure container is relative
 
         const cancelBtn = document.createElement('button');
         cancelBtn.type = 'button';
@@ -186,6 +187,22 @@ class ExpressionForm {
         cancelBtn.dataset.type = type;
         cancelBtn.innerHTML = '×';
         cancelBtn.title = 'Remove ' + type;
+        
+        // Position relative to container
+        cancelBtn.style.position = 'absolute';
+        cancelBtn.style.top = '-10px';
+        cancelBtn.style.right = '-10px';
+        cancelBtn.style.zIndex = '10000';
+        cancelBtn.style.width = '20px';
+        cancelBtn.style.height = '20px';
+        cancelBtn.style.borderRadius = '50px';
+        cancelBtn.style.backgroundColor = 'white';
+        cancelBtn.style.color = 'black';
+        cancelBtn.style.border = 'none';
+        cancelBtn.style.cursor = 'pointer';
+        cancelBtn.style.display = 'flex';
+        cancelBtn.style.alignItems = 'center';
+        cancelBtn.style.justifyContent = 'center';
 
         container.appendChild(cancelBtn);
         return container;
