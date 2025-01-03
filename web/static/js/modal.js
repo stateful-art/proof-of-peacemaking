@@ -354,6 +354,7 @@ class ExpressionForm {
 
         // Format time in MM:SS
         const formatTime = time => {
+            if (!isFinite(time)) return '0:00';
             const minutes = Math.floor(time / 60);
             const seconds = Math.floor(time % 60);
             return `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -370,6 +371,13 @@ class ExpressionForm {
         audio.addEventListener('loadedmetadata', () => {
             durationEl.textContent = formatTime(audio.duration);
         });
+
+        // Set initial duration text
+        if (audio.duration) {
+            durationEl.textContent = formatTime(audio.duration);
+        } else {
+            durationEl.textContent = '0:00';
+        }
 
         // Play/Pause
         playButton.addEventListener('click', () => {
@@ -440,7 +448,6 @@ class ExpressionForm {
             
             document.querySelectorAll('.btn-record').forEach(button => {
                 button.classList.remove('recording');
-                button.textContent = button.id.includes('video') ? 'Record Video' : 'Record Audio';
             });
         } else {
             console.log('No active MediaRecorder to stop');

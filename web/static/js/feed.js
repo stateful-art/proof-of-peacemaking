@@ -60,6 +60,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Format time in MM:SS
+    const formatTime = time => {
+        if (!isFinite(time)) return '0:00';
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
     // Initialize audio players
     document.querySelectorAll('.audio-player').forEach(player => {
         const audio = player.parentElement.querySelector('.audio-element');
@@ -73,23 +81,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const volumeSlider = player.querySelector('.volume-slider');
         const progressBar = player.querySelector('.audio-progress');
 
-        // Format time in MM:SS
-        const formatTime = time => {
-            const minutes = Math.floor(time / 60);
-            const seconds = Math.floor(time % 60);
-            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        };
+        // Set initial duration text
+        if (audio.duration) {
+            durationEl.textContent = formatTime(audio.duration);
+        } else {
+            audio.addEventListener('loadedmetadata', () => {
+                durationEl.textContent = formatTime(audio.duration);
+            });
+            durationEl.textContent = '0:00';
+        }
 
         // Update progress bar
         audio.addEventListener('timeupdate', () => {
             const percent = (audio.currentTime / audio.duration) * 100;
             progress.style.width = percent + '%';
             currentTimeEl.textContent = formatTime(audio.currentTime);
-        });
-
-        // Set duration when metadata is loaded
-        audio.addEventListener('loadedmetadata', () => {
-            durationEl.textContent = formatTime(audio.duration);
         });
 
         // Play/Pause

@@ -9,7 +9,7 @@
 .text-input {
     width: 100%;
     min-height: 24px;
-    padding: 1rem 1rem 0;
+    padding: 1rem;
     background: transparent;
     color: var(--text-primary);
     font-size: 1.25rem;
@@ -21,6 +21,7 @@
     content: attr(data-placeholder);
     color: rgb(113, 118, 123);
     pointer-events: none;
+    position: absolute;
 }
 
 .text-input:focus {
@@ -39,8 +40,8 @@
 
 /* Icon buttons */
 #createExpressionModal .btn {
-    width: auto;
-    height: auto;
+    width: 32px;
+    height: 32px;
     padding: 0;
     border: none;
     cursor: pointer;
@@ -50,10 +51,19 @@
     justify-content: center;
     background: transparent;
     color: rgb(113, 118, 123);
+    font-size: 0;
+    text-indent: -9999px;
+    overflow: hidden;
+    position: relative;
 }
 
 #createExpressionModal .btn i {
     font-size: 16px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-indent: 0;
 }
 
 #createExpressionModal .btn:hover {
@@ -92,6 +102,8 @@
     color: white;
     font-weight: bold;
     font-size: 0.95rem;
+    text-indent: 0;
+    overflow: visible;
 }
 
 #createExpressionModal .btn-submit:hover {
@@ -142,13 +154,14 @@
 }
 
 #createExpressionModal .modal {
-    width: 90%;
-    max-width: 600px;
+    width: 100%;
+    max-width: 900px;
     background: rgb(0, 0, 0);
     border-radius: 16px;
     color: var(--text-primary);
     position: relative;
     overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 #createExpressionModal .modal h2 {
@@ -157,13 +170,13 @@
     font-weight: bold;
     color: var(--text-primary);
     padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    /* border-bottom: 1px solid rgba(255, 255, 255, 0.1); */
 }
 
 #createExpressionModal .modal-close {
     position: absolute;
-    top: 0.5rem;
-    left: 0.5rem;
+    top: 0.75rem;
+    right: 0.75rem;
     width: 34px;
     height: 34px;
     border-radius: 50%;
@@ -175,6 +188,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 10;
 }
 
 #createExpressionModal .modal-close:hover {
