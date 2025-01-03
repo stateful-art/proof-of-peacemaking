@@ -79,9 +79,9 @@
     border-top: 1px solid white !important;
 }
 
-.split-content .learn-more:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
+/* .split-content .learn-more:hover {
+    background: black!important;
+} */
 
 .split-content .cta-button:hover {
     background: white;
@@ -344,4 +344,18 @@
     .event-link {
         width: 50%;
     }
+}
+
+.action-link {
+    color: inherit;
+    text-decoration: none;
+    display: inline-block;
+    width: 100%;
+    height: 100%;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.action-link:hover {
+    color: rgb(29, 155, 240);
 } 

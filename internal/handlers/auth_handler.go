@@ -184,7 +184,7 @@ func (h *AuthHandler) GetSession(c *fiber.Ctx) error {
 		})
 	}
 
-	log.Printf("[AUTH] Session verified for address: %s", address)
+	// log.Printf("[AUTH] Session verified for address: %s", address)
 	return c.JSON(fiber.Map{
 		"authenticated": true,
 		"address":       address,

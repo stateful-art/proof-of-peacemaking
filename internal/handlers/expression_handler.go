@@ -9,9 +9,21 @@ import (
 
 	"strings"
 
+	"fmt"
+	"path/filepath"
+
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+// Helper function to get map keys
+func getKeys[K comparable, V any](m map[K]V) []K {
+	keys := make([]K, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
 
 type ExpressionHandler struct {
 	expressionService ports.ExpressionService
@@ -33,6 +45,18 @@ func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid form data",
 		})
+	}
+
+	// Log form contents (only field names and sizes)
+	log.Printf("[EXPRESSION] Form fields: %v", getKeys(form.Value))
+	log.Printf("[EXPRESSION] File fields: %v", getKeys(form.File))
+	log.Printf("[EXPRESSION] Number of image files: %d", len(form.File["imageContent"]))
+	log.Printf("[EXPRESSION] Number of audio files: %d", len(form.File["audioContent"]))
+	log.Printf("[EXPRESSION] Number of video files: %d", len(form.File["videoContent"]))
+	for key, files := range form.File {
+		for _, file := range files {
+			log.Printf("[EXPRESSION] File %s: name=%s, size=%d", key, file.Filename, file.Size)
+		}
 	}
 
 	// Get user from context
@@ -64,6 +88,17 @@ func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
 	// Initialize content map
 	content := make(map[string]string)
 
+	// Create expression domain object first to get the ID
+	expression := &domain.Expression{
+		ID:             primitive.NewObjectID(),
+		Creator:        user.ID.Hex(),
+		CreatorAddress: userIdentifier,
+		Content:        content,
+		Status:         "pending",
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+
 	// Handle text content
 	if textContent := form.Value["textContent"]; len(textContent) > 0 {
 		content["text"] = textContent[0]
@@ -71,10 +106,12 @@ func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
 
 	// Handle image file
 	if imageFiles := form.File["imageContent"]; len(imageFiles) > 0 {
-		// Save image file
 		imageFile := imageFiles[0]
-		filename := "uploads/images/" + imageFile.Filename
+		ext := filepath.Ext(imageFile.Filename)
+		timestamp := time.Now().Unix()
+		filename := fmt.Sprintf("uploads/images/%s_img_%d%s", expression.ID.Hex(), timestamp, ext)
 		if err := c.SaveFile(imageFile, filename); err != nil {
+			log.Printf("[EXPRESSION] Error saving image: %v", err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to save image",
 			})
@@ -84,10 +121,12 @@ func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
 
 	// Handle audio file
 	if audioFiles := form.File["audioContent"]; len(audioFiles) > 0 {
-		// Save audio file
 		audioFile := audioFiles[0]
-		filename := "uploads/audio/" + audioFile.Filename
+		ext := filepath.Ext(audioFile.Filename)
+		timestamp := time.Now().Unix()
+		filename := fmt.Sprintf("uploads/audio/%s_aud_%d%s", expression.ID.Hex(), timestamp, ext)
 		if err := c.SaveFile(audioFile, filename); err != nil {
+			log.Printf("[EXPRESSION] Error saving audio: %v", err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to save audio",
 			})
@@ -97,26 +136,17 @@ func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
 
 	// Handle video file
 	if videoFiles := form.File["videoContent"]; len(videoFiles) > 0 {
-		// Save video file
 		videoFile := videoFiles[0]
-		filename := "uploads/video/" + videoFile.Filename
+		ext := filepath.Ext(videoFile.Filename)
+		timestamp := time.Now().Unix()
+		filename := fmt.Sprintf("uploads/video/%s_vid_%d%s", expression.ID.Hex(), timestamp, ext)
 		if err := c.SaveFile(videoFile, filename); err != nil {
+			log.Printf("[EXPRESSION] Error saving video: %v", err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Failed to save video",
 			})
 		}
 		content["video"] = filename
-	}
-
-	// Create expression domain object
-	expression := &domain.Expression{
-		ID:             primitive.NewObjectID(),
-		Creator:        user.ID.Hex(),
-		CreatorAddress: userIdentifier,
-		Content:        content,
-		Status:         "pending",
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
 	}
 
 	// Call service to create expression

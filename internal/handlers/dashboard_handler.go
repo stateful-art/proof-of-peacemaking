@@ -143,7 +143,7 @@ func (h *DashboardHandler) GetDashboard(c *fiber.Ctx) error {
 		"RecentExpressions":    recentExpressions,
 	}
 
-	log.Printf("[DASHBOARD] Data being passed to template: %+v", data)
+	// log.Printf("[DASHBOARD] Data being passed to template: %+v", data)
 	return c.Render("dashboard", data, "")
 }
 

@@ -227,7 +227,7 @@ func (s *authService) Register(ctx context.Context, address string, email string
 }
 
 func (s *authService) VerifyToken(ctx context.Context, token string) (string, error) {
-	log.Printf("[AUTH] Verifying token")
+	// log.Printf("[AUTH] Verifying token")
 	session, err := s.sessionRepo.FindByToken(ctx, token)
 	if err != nil {
 		log.Printf("[AUTH] Error finding session: %v", err)
@@ -255,13 +255,13 @@ func (s *authService) VerifyToken(ctx context.Context, token string) (string, er
 
 	// For wallet auth, return address
 	if session.Address != "" {
-		log.Printf("[AUTH] Session verified for wallet address: %s", session.Address)
+		// log.Printf("[AUTH] Session verified for wallet address: %s", session.Address)
 		return session.Address, nil
 	}
 
 	// For email auth, return email
 	if user.Email != "" {
-		log.Printf("[AUTH] Session verified for email: %s", user.Email)
+		// log.Printf("[AUTH] Session verified for email: %s", user.Email)
 		return user.Email, nil
 	}
 
