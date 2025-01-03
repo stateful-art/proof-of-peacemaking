@@ -247,7 +247,10 @@ class ExpressionForm {
             console.log(`Starting ${mediaType} recording...`);
             const constraints = {
                 audio: true,
-                video: mediaType === 'video'
+                video: mediaType === 'video' ? {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                } : false
             };
 
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -272,8 +275,28 @@ class ExpressionForm {
                 this.initializeAudioPlayer(container);
             }
             
+            // Try different MIME types in order of preference
+            const videoTypes = [
+                'video/webm;codecs=vp8,opus',
+                'video/webm;codecs=vp9,opus',
+                'video/webm;codecs=h264,opus',
+                'video/webm'
+            ];
+
+            let selectedMimeType = mediaType === 'video' ? 
+                videoTypes.find(type => MediaRecorder.isTypeSupported(type)) : 
+                'audio/webm;codecs=opus';
+
+            if (!selectedMimeType) {
+                console.error('No supported MIME type found');
+                selectedMimeType = 'video/webm'; // Fallback to basic webm
+            }
+
+            console.log('Using MIME type:', selectedMimeType);
+            
             const options = {
-                mimeType: mediaType === 'video' ? 'video/webm' : 'audio/webm',
+                mimeType: selectedMimeType,
+                videoBitsPerSecond: 2500000, // 2.5 Mbps
                 audioBitsPerSecond: 128000
             };
             
