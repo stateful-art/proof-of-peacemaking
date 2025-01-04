@@ -297,10 +297,10 @@ classDiagram
   - Enhanced filtering
   - Social features
 - User dashboard enhancement
-  - Analytics integration (Google Analytics)
+  - (maybe) Analytics integration (Google Analytics or Matomo)
   - Achievement tracking
   - Notification system
-  - CRM integration (Hubspot)
+  - (maybe) CRM integration (Hubspot)
 
 ### Q1-Q2 2025 Planned
 
