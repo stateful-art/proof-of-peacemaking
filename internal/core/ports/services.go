@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"io"
 
 	"proofofpeacemaking/internal/core/domain"
 
@@ -34,6 +35,9 @@ type ExpressionService interface {
 	List(ctx context.Context) ([]*domain.Expression, error)
 	ListByUser(ctx context.Context, userID string) ([]*domain.Expression, error)
 	GetMultiple(ctx context.Context, ids []string) (map[string]*domain.Expression, error)
+	UploadMedia(ctx context.Context, expressionID string, mediaType string, reader io.Reader, filename string) (string, error)
+	GetMedia(ctx context.Context, expressionID string, mediaType string) (io.ReadCloser, error)
+	DeleteMedia(ctx context.Context, expressionID string, mediaType string) error
 }
 
 type AcknowledgementService interface {

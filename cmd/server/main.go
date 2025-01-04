@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"proofofpeacemaking/api/routes"
+	"proofofpeacemaking/internal/core/config"
 	"proofofpeacemaking/internal/core/ports"
 	"proofofpeacemaking/internal/core/services"
+	"proofofpeacemaking/internal/core/storage"
 	"proofofpeacemaking/internal/handlers"
 	"proofofpeacemaking/internal/repositories/mongodb"
 
@@ -38,15 +40,31 @@ func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl) (
 	notificationRepo := mongodb.NewNotificationRepository(db)
 	proofNFTRepo := mongodb.NewProofNFTRepository(db)
 
+	// Initialize R2 storage for expressions
+	expressionsConfig, err := config.GetR2Config("EXPRESSIONS")
+	if err != nil {
+		log.Fatalf("Failed to get expressions R2 config: %v", err)
+	}
+	expressionsR2Storage, err := storage.NewR2Storage(
+		expressionsConfig.S3AccessKeyID,
+		expressionsConfig.S3SecretKey,
+		expressionsConfig.AccountID,
+		expressionsConfig.Bucket,
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize expressions R2 storage: %v", err)
+	}
+
 	// Initialize services
 	userService := services.NewUserService(userRepo)
 	authService := services.NewAuthService(userService, sessionRepo)
-	expressionService := services.NewExpressionService(expressionRepo, acknowledgementRepo)
+	expressionService := services.NewExpressionService(expressionRepo, acknowledgementRepo, expressionsR2Storage)
 	acknowledgementService := services.NewAcknowledgementService(acknowledgementRepo)
 	notificationService := services.NewNotificationService(notificationRepo, userRepo)
 	proofNFTService := services.NewProofNFTService(userRepo, proofNFTRepo)
 	feedService := services.NewFeedService(expressionService, userService, acknowledgementService)
 	newsletterService := services.NewNewsletterService(mailgunClient)
+
 	return notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService, newsletterService
 }
 
@@ -102,8 +120,7 @@ func main() {
 
 	// Setup template engine
 	engine := initTemplateEngine()
-	engine.Reload(true) // Enable this for development
-	engine.Debug(true)  // Enable debug mode for development
+	engine.Reload(true)
 
 	// Add template functions
 	engine.AddFunc("formatDate", func(date time.Time) string {

@@ -54,6 +54,7 @@ func EnsureIndexes(ctx context.Context, db *mongo.Database, configs []IndexConfi
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -112,7 +113,11 @@ func generateIndexName(keys bson.D) string {
 		if name != "" {
 			name += "_"
 		}
-		name += key.Key + "_" + "1"
+		order := "1"
+		if key.Value.(int) == -1 {
+			order = "-1"
+		}
+		name += key.Key + "_" + order
 	}
 	return name
 }

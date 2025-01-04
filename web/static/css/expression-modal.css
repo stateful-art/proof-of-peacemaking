@@ -1,178 +1,204 @@
+#expressionForm {
+    padding: 0;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Text input style */
+.text-input {
+    width: 100%;
+    min-height: 24px;
+    padding: 1rem;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    line-height: 1.5;
+    cursor: text;
+}
+
+.text-input:empty:before {
+    content: attr(data-placeholder);
+    color: rgb(113, 118, 123);
+    pointer-events: none;
+    position: absolute;
+}
+
+.text-input:focus {
+    outline: none;
+}
+
+/* Bottom action bar */
+.form-group {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0.75rem 1rem;
+    margin-top: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Icon buttons */
+#createExpressionModal .btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: rgb(113, 118, 123);
+    font-size: 0;
+    text-indent: -9999px;
+    overflow: hidden;
+    position: relative;
+}
+
+#createExpressionModal .btn i {
+    font-size: 16px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-indent: 0;
+}
+
+#createExpressionModal .btn:hover {
+    color: rgb(29, 155, 240);
+}
+
+/* Recording state styles */
+#createExpressionModal .btn.recording .fa-microphone:before {
+    content: "\f04d"; /* fa-stop */
+}
+
+#createExpressionModal .btn.recording .fa-video:before {
+    content: "\f04d"; /* fa-stop */
+}
+
+#createExpressionModal .btn.recording {
+    color: rgb(244, 33, 46);
+}
+
+#createExpressionModal .btn.recording:hover {
+    color: rgb(220, 30, 41);
+}
+
+/* Hide button text, show only icons */
+#createExpressionModal .btn span {
+    display: none;
+}
+
+#createExpressionModal .btn-submit {
+    margin-left: auto;
+    width: auto;
+    height: auto;
+    padding: 0.6rem 1rem;
+    border-radius: 9999px;
+    background: rgb(29, 155, 240);
+    color: white;
+    font-weight: bold;
+    font-size: 0.95rem;
+    text-indent: 0;
+    overflow: visible;
+}
+
+#createExpressionModal .btn-submit:hover {
+    background: rgb(26, 140, 216);
+}
+
+.cancel-media {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.75);
+    border: none;
+    color: white;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.cancel-media:hover {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+/* Modal styles */
 .modal-backdrop {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     background: rgba(0, 0, 0, 0.8);
     display: none;
-    z-index: 1100;
+    justify-content: center;
+    align-items: center;
+    z-index: 9998;
 }
 
 .modal-backdrop.active {
     display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
-.modal {
-    background: var(--bg-secondary);
+#createExpressionModal .modal {
+    width: 100%;
+    max-width: 900px;
+    background: rgb(0, 0, 0);
     border-radius: 16px;
-    width: 90%;
-    max-width: 600px;
+    color: var(--text-primary);
     position: relative;
-    color: wheat;
-    max-height: 90vh;
-    overflow-y: auto;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.modal h2 {
+#createExpressionModal .modal h2 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: bold;
-    color: rgb(255, 255, 255);
-    background-color: black;
-    height: 4rem;
-    text-align: start;
+    color: var(--text-primary);
     padding: 1rem;
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
+    /* border-bottom: 1px solid rgba(255, 255, 255, 0.1); */
 }
 
-.modal-close {
+#createExpressionModal .modal-close {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: white;
-    background-color: black;
+    top: 0.75rem;
+    right: 0.75rem;
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-close:hover {
-    background: wheat;
-    color: black;
-}
-
-/* Form styles */
-#expressionForm {
-    padding: 20px;
-    background: var(--bg-secondary);
-}
-
-.form-group {
-    margin-bottom: 1.5rem;
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.btn {
-    padding: 0.8rem 1.5rem;
+    background: transparent;
     border: none;
-    border-radius: 9999px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.95rem;
-}
-
-.btn-record {
-    background: transparent;
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    flex: 1;
-    justify-content: center;
-    min-width: 150px;
-}
-
-.btn-record:hover {
-    background: rgba(239, 243, 244, 0.1);
-}
-
-.btn-record.recording {
-    background: rgba(244, 33, 46, 0.1);
-    color: var(--error-color);
-    border-color: var(--error-color);
-}
-
-.btn-upload {
-    background: transparent;
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    flex: 1;
-    justify-content: center;
-    min-width: 150px;
-}
-
-.btn-upload:hover {
-    background: rgba(239, 243, 244, 0.1);
-}
-
-.btn-submit {
-    background: rgb(186, 184, 184);
-    color: black;
-    width: 100%;
-    justify-content: center;
-    font-size: 1rem;
-    margin-top: 1rem;
-}
-
-.btn-submit:hover {
-    background: rgb(255, 255, 255);
-    color: black;
-}
-
-textarea {
-    width: 100%;
-    min-height: 150px;
-    padding: 1rem;
-    background: transparent;
-    border-top: whitesmoke 2px solid;
-    border-bottom: whitesmoke 2px solid;
-    border-radius: 0;
-    resize: vertical;
     color: var(--text-primary);
     font-size: 1.25rem;
-    margin: 1rem 0;
-}
-
-textarea:focus {
-    outline: none;
-    border-color: var(--accent-color);
-}
-
-textarea::placeholder {
-    color: var(--text-secondary);
-}
-
-.preview {
-    margin-top: 1rem;
+    cursor: pointer;
     display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
 }
 
-.media-preview {
-    max-width: 200px;
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1px solid var(--border-color);
+#createExpressionModal .modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
-#mediaError {
-    color: var(--error-color);
-    margin-top: 0.5rem;
-    font-size: 0.9rem;
+#createExpressionModal .btn.recording .record-icon {
+    display: none;
+}
+
+#createExpressionModal .btn.recording .stop-icon {
+    display: block !important;
 } 
