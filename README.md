@@ -1,6 +1,6 @@
 # Proof of Peacemaking
 
-A decentralized platform for creating and acknowledging expressions of peace, with verifiable proof stored on the blockchain.
+A decentralized platform for creating and acknowledging expressions of peace, with (optional) verifiable proof stored on the blockchain.
 
 ## Overview
 
@@ -258,30 +258,68 @@ classDiagram
 ### Current Status (Q4 2024)
 
 ✅ **Completed**
-- Basic authentication with MetaMask
-- Session management
+- Authentication system
+  - MetaMask wallet integration
+  - Email/password authentication
+  - Session management
 - User profile system
-- Basic frontend structure
+  - Profile customization
+  - Wallet connection
+  - Activity tracking
+- Expression system foundation
+  - Multimedia support (text, images, audio, video)
+  - R2 storage integration
+  - Content delivery optimization
 - Smart contract architecture (Diamond Pattern)
+- Basic feed implementation
+  - Custom media players
+  - Interactive UI components
+  - Basic content listing
+- Basic frontend structure
+  - Responsive design
+  - Dark mode support
+  - Modern UI components
 
 🚧 **In Progress**
-- Expression creation and management
-- Acknowledgement system
-- Activity feed implementation
-- User dashboard
+- Expression system enhancement
+  - Advanced media processing
+  - Content moderation system
+  - Expression categorization
+  - Template-based creation
+- Integration of third-party services
+  - DocuSign for eSignatures
+  - Canva API for certificate generation
+  - Agreement template system
+- Feed system enhancement
+  - Real-time updates
+  - WebSocket integration
+  - Performance improvements
+  - Enhanced filtering
+  - Social features
+- User dashboard enhancement
+  - Analytics integration (Google Analytics)
+  - Achievement tracking
+  - Notification system
+  - CRM integration (Hubspot)
 
 ### Q1-Q2 2025 Planned
 
 #### Core Features
 - IPFS integration for content storage
-- Expression creation and management
-  - Multimedia support (text, images, audio)
-  - Content moderation system
-  - Expression categorization
-- Acknowledgement system
+- Expression system expansion
+  - AI-assisted content creation
+  - Collaborative editing
+  - Version control
+  - Rich text formatting
+- KYC integration
+  - Citizenship verification
+  - Identity validation
+  - Compliance management
+- Acknowledgement system enhancement
   - Dual-signature verification
   - Acknowledgement types and categories
   - Reputation system
+  - Smart verification flow
 
 #### Smart Contracts
 - Deploy Diamond proxy contract
