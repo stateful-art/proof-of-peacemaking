@@ -9,9 +9,6 @@ import (
 
 	"strings"
 
-	"fmt"
-	"path/filepath"
-
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -107,46 +104,70 @@ func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
 	// Handle image file
 	if imageFiles := form.File["imageContent"]; len(imageFiles) > 0 {
 		imageFile := imageFiles[0]
-		ext := filepath.Ext(imageFile.Filename)
-		timestamp := time.Now().Unix()
-		filename := fmt.Sprintf("uploads/images/%s_img_%d%s", expression.ID.Hex(), timestamp, ext)
-		if err := c.SaveFile(imageFile, filename); err != nil {
-			log.Printf("[EXPRESSION] Error saving image: %v", err)
+		file, err := imageFile.Open()
+		if err != nil {
+			log.Printf("[EXPRESSION] Error opening image file: %v", err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to save image",
+				"error": "Failed to process image",
 			})
 		}
-		content["image"] = filename
+		defer file.Close()
+
+		// Upload to R2
+		key, err := h.expressionService.UploadMedia(c.Context(), expression.ID.Hex(), "image", file, imageFile.Filename)
+		if err != nil {
+			log.Printf("[EXPRESSION] Error uploading image to R2: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to upload image",
+			})
+		}
+		content["image"] = key
 	}
 
 	// Handle audio file
 	if audioFiles := form.File["audioContent"]; len(audioFiles) > 0 {
 		audioFile := audioFiles[0]
-		ext := filepath.Ext(audioFile.Filename)
-		timestamp := time.Now().Unix()
-		filename := fmt.Sprintf("uploads/audio/%s_aud_%d%s", expression.ID.Hex(), timestamp, ext)
-		if err := c.SaveFile(audioFile, filename); err != nil {
-			log.Printf("[EXPRESSION] Error saving audio: %v", err)
+		file, err := audioFile.Open()
+		if err != nil {
+			log.Printf("[EXPRESSION] Error opening audio file: %v", err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to save audio",
+				"error": "Failed to process audio",
 			})
 		}
-		content["audio"] = filename
+		defer file.Close()
+
+		// Upload to R2
+		key, err := h.expressionService.UploadMedia(c.Context(), expression.ID.Hex(), "audio", file, audioFile.Filename)
+		if err != nil {
+			log.Printf("[EXPRESSION] Error uploading audio to R2: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to upload audio",
+			})
+		}
+		content["audio"] = key
 	}
 
 	// Handle video file
 	if videoFiles := form.File["videoContent"]; len(videoFiles) > 0 {
 		videoFile := videoFiles[0]
-		ext := filepath.Ext(videoFile.Filename)
-		timestamp := time.Now().Unix()
-		filename := fmt.Sprintf("uploads/video/%s_vid_%d%s", expression.ID.Hex(), timestamp, ext)
-		if err := c.SaveFile(videoFile, filename); err != nil {
-			log.Printf("[EXPRESSION] Error saving video: %v", err)
+		file, err := videoFile.Open()
+		if err != nil {
+			log.Printf("[EXPRESSION] Error opening video file: %v", err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to save video",
+				"error": "Failed to process video",
 			})
 		}
-		content["video"] = filename
+		defer file.Close()
+
+		// Upload to R2
+		key, err := h.expressionService.UploadMedia(c.Context(), expression.ID.Hex(), "video", file, videoFile.Filename)
+		if err != nil {
+			log.Printf("[EXPRESSION] Error uploading video to R2: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to upload video",
+			})
+		}
+		content["video"] = key
 	}
 
 	// Call service to create expression

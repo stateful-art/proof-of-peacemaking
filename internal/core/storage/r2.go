@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"io"
 	"mime"
-	"os"
 	"path/filepath"
 	"time"
+
+	"log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -35,17 +36,13 @@ type UploadOptions struct {
 }
 
 // NewR2Storage creates a new instance of R2Storage with optimized configuration
-func NewR2Storage() (*R2Storage, error) {
-	r2AccessKey := os.Getenv("R2_ACCESS_KEY")
-	r2SecretKey := os.Getenv("R2_SECRET_KEY")
-	r2AccountID := os.Getenv("R2_ACCOUNT_ID")
-	r2Bucket := os.Getenv("R2_BUCKET")
-	r2Endpoint := fmt.Sprintf("https://%s.r2.cloudflarestorage.com", r2AccountID)
+func NewR2Storage(accessKey, secretKey, accountID, bucket string) (*R2Storage, error) {
+	r2Endpoint := fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountID)
 	r2Region := "auto"
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion(r2Region),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(r2AccessKey, r2SecretKey, "")),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load R2 configuration: %v", err)
@@ -65,7 +62,7 @@ func NewR2Storage() (*R2Storage, error) {
 
 	return &R2Storage{
 		client:   client,
-		bucket:   r2Bucket,
+		bucket:   bucket,
 		uploader: uploader,
 	}, nil
 }
@@ -96,40 +93,51 @@ func shouldCompress(contentType string) bool {
 
 // UploadFile uploads a file to R2 storage with optimizations
 func (s *R2Storage) UploadFile(ctx context.Context, key string, reader io.Reader, opts ...UploadOptions) error {
+	log.Printf("[R2] Starting upload for key: %s", key)
+
 	var uploadOpts UploadOptions
 	if len(opts) > 0 {
 		uploadOpts = opts[0]
+		log.Printf("[R2] Upload options - ContentType: %s, CacheControl: %s", uploadOpts.ContentType, uploadOpts.CacheControl)
 	}
 
 	// Set default content type if not provided
 	if uploadOpts.ContentType == "" {
 		uploadOpts.ContentType = getContentType(key)
+		log.Printf("[R2] Using default content type: %s", uploadOpts.ContentType)
 	}
 
 	// Set default cache control if not provided
 	if uploadOpts.CacheControl == "" {
 		uploadOpts.CacheControl = fmt.Sprintf("public, max-age=%d", defaultCacheAge)
+		log.Printf("[R2] Using default cache control: %s", uploadOpts.CacheControl)
 	}
 
 	input := &s3.PutObjectInput{
-		Bucket:       aws.String(s.bucket),
-		Key:          aws.String(key),
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(key),
+
 		Body:         reader,
 		ContentType:  aws.String(uploadOpts.ContentType),
 		CacheControl: aws.String(uploadOpts.CacheControl),
 	}
 
 	// Use uploader for efficient multipart upload
-	_, err := s.uploader.Upload(ctx, input)
+	log.Printf("[R2] Starting multipart upload to bucket: %s", s.bucket)
+	result, err := s.uploader.Upload(ctx, input)
 	if err != nil {
+		log.Printf("[R2] Upload failed for key %s: %v", key, err)
 		return fmt.Errorf("failed to upload file: %v", err)
 	}
+	log.Printf("[R2] Successfully uploaded file. Key: %s, ETag: %s", key, *result.ETag)
 
 	return nil
 }
 
 // GetFile retrieves a file from R2 storage with optimized settings
 func (s *R2Storage) GetFile(ctx context.Context, key string) (io.ReadCloser, error) {
+	log.Printf("[R2] Retrieving file with key: %s", key)
+
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
@@ -137,8 +145,10 @@ func (s *R2Storage) GetFile(ctx context.Context, key string) (io.ReadCloser, err
 
 	result, err := s.client.GetObject(ctx, input)
 	if err != nil {
+		log.Printf("[R2] Failed to get file with key %s: %v", key, err)
 		return nil, fmt.Errorf("failed to get file: %v", err)
 	}
+	log.Printf("[R2] Successfully retrieved file. Key: %s, Size: %d", key, result.ContentLength)
 
 	return result.Body, nil
 }
@@ -178,6 +188,8 @@ func (s *R2Storage) ListFiles(ctx context.Context, prefix string) ([]string, err
 
 // GetPresignedURL generates a presigned URL for direct client access
 func (s *R2Storage) GetPresignedURL(ctx context.Context, key string, expires time.Duration) (string, error) {
+	log.Printf("[R2] Generating presigned URL for key: %s with expiry: %v", key, expires)
+
 	presignClient := s3.NewPresignClient(s.client)
 
 	request, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
@@ -186,8 +198,10 @@ func (s *R2Storage) GetPresignedURL(ctx context.Context, key string, expires tim
 	}, s3.WithPresignExpires(expires))
 
 	if err != nil {
+		log.Printf("[R2] Failed to generate presigned URL for key %s: %v", key, err)
 		return "", fmt.Errorf("failed to generate presigned URL: %v", err)
 	}
+	log.Printf("[R2] Successfully generated presigned URL for key: %s", key)
 
 	return request.URL, nil
 }

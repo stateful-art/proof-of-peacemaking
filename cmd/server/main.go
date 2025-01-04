@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"proofofpeacemaking/api/routes"
+	"proofofpeacemaking/internal/core/config"
 	"proofofpeacemaking/internal/core/ports"
 	"proofofpeacemaking/internal/core/services"
 	"proofofpeacemaking/internal/core/storage"
@@ -39,16 +40,25 @@ func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl) (
 	notificationRepo := mongodb.NewNotificationRepository(db)
 	proofNFTRepo := mongodb.NewProofNFTRepository(db)
 
-	// Initialize R2 storage
-	r2Storage, err := storage.NewR2Storage()
+	// Initialize R2 storage for expressions
+	expressionsConfig, err := config.GetR2Config("EXPRESSIONS")
 	if err != nil {
-		log.Fatalf("Failed to initialize R2 storage: %v", err)
+		log.Fatalf("Failed to get expressions R2 config: %v", err)
+	}
+	expressionsR2Storage, err := storage.NewR2Storage(
+		expressionsConfig.S3AccessKeyID,
+		expressionsConfig.S3SecretKey,
+		expressionsConfig.AccountID,
+		expressionsConfig.Bucket,
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize expressions R2 storage: %v", err)
 	}
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
 	authService := services.NewAuthService(userService, sessionRepo)
-	expressionService := services.NewExpressionService(expressionRepo, acknowledgementRepo, r2Storage)
+	expressionService := services.NewExpressionService(expressionRepo, acknowledgementRepo, expressionsR2Storage)
 	acknowledgementService := services.NewAcknowledgementService(acknowledgementRepo)
 	notificationService := services.NewNotificationService(notificationRepo, userRepo)
 	proofNFTService := services.NewProofNFTService(userRepo, proofNFTRepo)
