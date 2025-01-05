@@ -30,7 +30,7 @@ func NewHandlers(
 	newsletterService ports.NewsletterService,
 ) *Handlers {
 	return &Handlers{
-		Auth:            NewAuthHandler(authService),
+		Auth:            NewAuthHandler(authService, userService),
 		User:            NewUserHandler(userService, statisticsService),
 		Expression:      NewExpressionHandler(expressionService, userService, statisticsService),
 		Acknowledgement: NewAcknowledgementHandler(acknowledgementService, userService, expressionService, statisticsService),

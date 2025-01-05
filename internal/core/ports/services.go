@@ -29,6 +29,7 @@ type AuthService interface {
 	LoginWithEmail(ctx context.Context, email string, password string) (*domain.User, string, error)
 	VerifyToken(ctx context.Context, token string) (string, error)
 	Logout(ctx context.Context, token string) error
+	DeleteAllUserSessions(ctx context.Context, userIdentifier string) error
 }
 
 type ExpressionService interface {

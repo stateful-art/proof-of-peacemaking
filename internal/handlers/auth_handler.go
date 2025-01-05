@@ -3,17 +3,21 @@ package handlers
 import (
 	"log"
 	"proofofpeacemaking/internal/core/ports"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 type AuthHandler struct {
 	authService ports.AuthService
+	userService ports.UserService
 }
 
-func NewAuthHandler(authService ports.AuthService) *AuthHandler {
+func NewAuthHandler(authService ports.AuthService, userService ports.UserService) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
+		userService: userService,
 	}
 }
 
@@ -133,23 +137,45 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	// Get session token from cookie
 	sessionToken := c.Cookies("session")
 	if sessionToken != "" {
+		// Get user identifier before invalidating session
+		userIdentifier := ""
+		if userAddr := c.Locals("userAddress"); userAddr != nil {
+			userIdentifier = userAddr.(string)
+		}
+
 		// Invalidate session in database
 		if err := h.authService.Logout(c.Context(), sessionToken); err != nil {
 			log.Printf("[AUTH] Error invalidating session: %v", err)
 			// Continue with cookie cleanup even if session invalidation fails
 		}
+
+		// Only try to delete all sessions if we have a user identifier
+		if userIdentifier != "" {
+			if err := h.authService.DeleteAllUserSessions(c.Context(), userIdentifier); err != nil {
+				log.Printf("[AUTH] Error deleting user sessions: %v", err)
+				// Continue as this is not critical
+			}
+		}
 	}
 
-	// Clear the session cookie
-	c.Cookie(&fiber.Cookie{
-		Name:     "session",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		Secure:   true,
-		HTTPOnly: true,
-		SameSite: "Strict",
-	})
+	// Clear all auth-related cookies with all possible paths
+	cookiesToClear := []string{"session", "user", "token"}
+	paths := []string{"/", "/auth", "/api"}
+
+	for _, cookieName := range cookiesToClear {
+		for _, path := range paths {
+			c.Cookie(&fiber.Cookie{
+				Name:     cookieName,
+				Value:    "",
+				Path:     path,
+				MaxAge:   -1,
+				Expires:  time.Now().Add(-24 * time.Hour), // Set expiry in the past
+				Secure:   true,
+				HTTPOnly: true,
+				SameSite: "Strict",
+			})
+		}
+	}
 
 	return c.SendStatus(fiber.StatusOK)
 }
@@ -217,22 +243,51 @@ func (h *AuthHandler) RegisterWithEmail(c *fiber.Ctx) error {
 
 	user, token, err := h.authService.RegisterWithEmail(c.Context(), body.Email, body.Password, body.Username)
 	if err != nil {
-		// Check for specific error cases
-		switch err.Error() {
-		case "email already registered":
-			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-				"error": "Email already registered",
-			})
-		case "username already taken":
-			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-				"error": "Username already taken",
-			})
-		default:
-			log.Printf("[AUTH] Registration error: %v", err)
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": err.Error(),
-			})
+		// Check if the error is a duplicate key error
+		if strings.Contains(err.Error(), "E11000 duplicate key error") {
+			// Check if the user was actually created (race condition where one request succeeded)
+			existingUser, checkErr := h.userService.GetUserByEmail(c.Context(), body.Email)
+			if checkErr == nil && existingUser != nil {
+				// User exists and was created by the parallel request
+				// Generate a new session token for this user
+				loginUser, newToken, loginErr := h.authService.LoginWithEmail(c.Context(), body.Email, body.Password)
+				if loginErr == nil {
+					// Set the cookie and return success
+					cookie := fiber.Cookie{
+						Name:     "session",
+						Value:    newToken,
+						Path:     "/",
+						MaxAge:   24 * 60 * 60, // 24 hours
+						Secure:   true,         // Only send over HTTPS
+						HTTPOnly: true,         // Prevent JavaScript access
+						SameSite: "Strict",     // CSRF protection
+					}
+					c.Cookie(&cookie)
+
+					return c.JSON(fiber.Map{
+						"user":     loginUser,
+						"redirect": "/feed",
+						"message":  "Registration successful! Redirecting in 10 seconds...",
+					})
+				}
+			}
+
+			// If we couldn't verify the user exists, return the appropriate error
+			if strings.Contains(err.Error(), "email_1") {
+				return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+					"error": "Email already registered",
+				})
+			} else if strings.Contains(err.Error(), "username_1") {
+				return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+					"error": "Username already taken",
+				})
+			}
 		}
+
+		log.Printf("[AUTH] Registration error: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	// Set secure HTTP-only cookie
@@ -250,6 +305,7 @@ func (h *AuthHandler) RegisterWithEmail(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"user":     user,
 		"redirect": "/feed",
+		"message":  "Registration successful! Redirecting in 10 seconds...",
 	})
 }
 

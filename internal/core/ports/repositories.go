@@ -35,6 +35,7 @@ type SessionRepository interface {
 	DeleteByToken(ctx context.Context, token string) error
 	DeleteExpired(ctx context.Context) error
 	Update(ctx context.Context, session *domain.Session) error
+	DeleteByUserID(ctx context.Context, userID primitive.ObjectID) error
 }
 
 type ExpressionRepository interface {

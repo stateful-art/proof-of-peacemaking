@@ -67,9 +67,13 @@ func (s *authService) GenerateNonce(ctx context.Context, address string) (int, e
 		log.Printf("[AUTH] Updated nonce to %d for user %s", nonce, user.ID.Hex())
 	} else {
 		// Create new user if not exists
+		// Generate a valid username from the address (e.g., "0x844a54d19d")
+		username := address[:10] // Take first 10 characters which includes "0x" and 8 hex chars
+
 		user = &domain.User{
 			ID:        primitive.NewObjectID(),
 			Address:   address,
+			Username:  username,
 			Nonce:     nonce,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -291,14 +295,35 @@ func (s *authService) Logout(ctx context.Context, token string) error {
 }
 
 func (s *authService) RegisterWithEmail(ctx context.Context, email string, password string, username string) (*domain.User, string, error) {
-	// Check if email already exists
-	existingUser, _ := s.userService.GetUserByEmail(ctx, email)
+	// Validate email format
+	if !strings.Contains(email, "@") {
+		return nil, "", fmt.Errorf("invalid email format")
+	}
+
+	// Validate username length
+	if len(username) < 3 || len(username) > 30 {
+		return nil, "", fmt.Errorf("username must be between 3 and 30 characters")
+	}
+
+	// Validate password strength
+	if len(password) < 8 {
+		return nil, "", fmt.Errorf("password must be at least 8 characters")
+	}
+
+	// Check if email already exists (case-insensitive)
+	existingUser, err := s.userService.GetUserByEmail(ctx, email)
+	if err != nil {
+		return nil, "", fmt.Errorf("error checking email: %w", err)
+	}
 	if existingUser != nil {
 		return nil, "", fmt.Errorf("email already registered")
 	}
 
-	// Check if username already exists
-	existingUser, _ = s.userService.GetUserByUsername(ctx, username)
+	// Check if username already exists (case-insensitive)
+	existingUser, err = s.userService.GetUserByUsername(ctx, username)
+	if err != nil {
+		return nil, "", fmt.Errorf("error checking username: %w", err)
+	}
 	if existingUser != nil {
 		return nil, "", fmt.Errorf("username already taken")
 	}
@@ -306,13 +331,13 @@ func (s *authService) RegisterWithEmail(ctx context.Context, email string, passw
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, "", fmt.Errorf("error hashing password")
+		return nil, "", fmt.Errorf("error hashing password: %w", err)
 	}
 
 	// Create user
 	user := &domain.User{
 		ID:        primitive.NewObjectID(),
-		Email:     email,
+		Email:     strings.ToLower(email), // Store email in lowercase
 		Username:  username,
 		Password:  string(hashedPassword),
 		CreatedAt: time.Now(),
@@ -320,13 +345,13 @@ func (s *authService) RegisterWithEmail(ctx context.Context, email string, passw
 	}
 
 	if err := s.userService.Create(ctx, user); err != nil {
-		return nil, "", fmt.Errorf("error creating user: %v", err)
+		return nil, "", fmt.Errorf("error creating user: %w", err)
 	}
 
 	// Create session
 	sessionToken, err := generateSecureToken()
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to generate session token")
+		return nil, "", fmt.Errorf("failed to generate session token: %w", err)
 	}
 
 	session := &domain.Session{
@@ -339,7 +364,7 @@ func (s *authService) RegisterWithEmail(ctx context.Context, email string, passw
 	}
 
 	if err := s.sessionRepo.Create(ctx, session); err != nil {
-		return nil, "", fmt.Errorf("failed to create session")
+		return nil, "", fmt.Errorf("failed to create session: %w", err)
 	}
 
 	return user, sessionToken, nil
@@ -378,4 +403,30 @@ func (s *authService) LoginWithEmail(ctx context.Context, email string, password
 	}
 
 	return user, sessionToken, nil
+}
+
+func (s *authService) DeleteAllUserSessions(ctx context.Context, userIdentifier string) error {
+	// Get user by email or address
+	var user *domain.User
+	var err error
+
+	if strings.Contains(userIdentifier, "@") {
+		user, err = s.userService.GetUserByEmail(ctx, userIdentifier)
+	} else {
+		user, err = s.userService.GetUserByAddress(ctx, userIdentifier)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to find user: %w", err)
+	}
+	if user == nil {
+		return nil // No sessions to delete if user doesn't exist
+	}
+
+	// Delete all sessions for this user
+	if err := s.sessionRepo.DeleteByUserID(ctx, user.ID); err != nil {
+		return fmt.Errorf("failed to delete user sessions: %w", err)
+	}
+
+	return nil
 }

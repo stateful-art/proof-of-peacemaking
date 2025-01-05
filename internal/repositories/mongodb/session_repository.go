@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -69,5 +70,13 @@ func (r *sessionRepository) Update(ctx context.Context, session *domain.Session)
 		return fmt.Errorf("session not found")
 	}
 
+	return nil
+}
+
+func (r *sessionRepository) DeleteByUserID(ctx context.Context, userID primitive.ObjectID) error {
+	_, err := r.db.Collection("sessions").DeleteMany(ctx, bson.M{"userID": userID})
+	if err != nil {
+		return fmt.Errorf("failed to delete user sessions: %w", err)
+	}
 	return nil
 }
