@@ -348,7 +348,6 @@ func (h *WebAuthnHandler) FinishAuthentication(c *fiber.Ctx) error {
 
 	// Log request body for debugging
 	body := c.Body()
-	log.Printf("[WEBAUTHN] Request body: %s", string(body))
 
 	// Parse response
 	response, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader(body))

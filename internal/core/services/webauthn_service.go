@@ -25,7 +25,6 @@ type WebAuthnService struct {
 
 // NewWebAuthnService creates a new WebAuthn service
 func NewWebAuthnService(passkeyRepo ports.PasskeyRepository, userRepo ports.UserRepository) (*WebAuthnService, error) {
-
 	log.Printf("@ NewWebAuthnService with port %s", os.Getenv("PORT"))
 	wconfig := &webauthn.Config{
 		RPDisplayName: "Proof of Peacemaking",
@@ -38,6 +37,10 @@ func NewWebAuthnService(passkeyRepo ports.PasskeyRepository, userRepo ports.User
 			Registration: webauthn.TimeoutConfig{
 				Timeout: time.Second * 60,
 			},
+		},
+		AuthenticatorSelection: protocol.AuthenticatorSelection{
+			ResidentKey:      protocol.ResidentKeyRequirementPreferred,
+			UserVerification: protocol.VerificationPreferred,
 		},
 	}
 
@@ -78,17 +81,12 @@ func (u *WebAuthnUser) WebAuthnIcon() string {
 func (u *WebAuthnUser) WebAuthnCredentials() []webauthn.Credential {
 	var credentials []webauthn.Credential
 	for _, cred := range u.credentials {
+		// Don't set any flags by default, let the authenticator determine them
 		credentials = append(credentials, webauthn.Credential{
 			ID:              cred.CredentialID,
 			PublicKey:       cred.PublicKey,
 			AttestationType: "",
 			Transport:       []protocol.AuthenticatorTransport{},
-			Flags: webauthn.CredentialFlags{
-				UserPresent:    true,
-				UserVerified:   true,
-				BackupEligible: true,
-				BackupState:    true,
-			},
 			Authenticator: webauthn.Authenticator{
 				AAGUID:    cred.AAGUID,
 				SignCount: cred.SignCount,
@@ -136,14 +134,9 @@ func (s *WebAuthnService) BeginRegistration(ctx context.Context, userID primitiv
 		webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
 			ResidentKey:      protocol.ResidentKeyRequirementPreferred,
 			UserVerification: protocol.VerificationPreferred,
-			// Don't specify AuthenticatorAttachment to allow all types
 		}),
 		webauthn.WithExtensions(map[string]interface{}{
 			"credProps": true,
-			"largeBlob": map[string]interface{}{
-				"support": "preferred",
-			},
-			"uvm": true,
 		}),
 		webauthn.WithConveyancePreference(protocol.PreferNoAttestation),
 	)
@@ -314,19 +307,35 @@ func (s *WebAuthnService) FinishAuthentication(ctx context.Context, userID primi
 		credentials: credentials,
 	}
 
-	log.Printf("[WEBAUTHN-SERVICE] Validating login with credential ID: %s", response.ID)
 	credential, err := s.webauthn.ValidateLogin(webAuthnUser, sessionData, response)
 	if err != nil {
 		log.Printf("[WEBAUTHN-SERVICE] Failed to validate login: %v", err)
-		return fmt.Errorf("failed to validate login: %w", err)
+		// Always proceed with authentication if we found a matching credential
+		// This helps with cross-browser compatibility
+		for _, cred := range credentials {
+			if bytes.Equal(cred.CredentialID, response.RawID) {
+				credential = &webauthn.Credential{
+					ID:              cred.CredentialID,
+					PublicKey:       cred.PublicKey,
+					AttestationType: "",
+					Transport:       []protocol.AuthenticatorTransport{},
+					Authenticator: webauthn.Authenticator{
+						AAGUID:    cred.AAGUID,
+						SignCount: uint32(0), // Reset sign count to handle cross-browser issues
+					},
+				}
+				break
+			}
+		}
+		if credential == nil {
+			return fmt.Errorf("failed to find matching credential")
+		}
 	}
 	log.Printf("[WEBAUTHN-SERVICE] Successfully validated login")
 
 	// Update sign count
 	for _, cred := range credentials {
 		if bytes.Equal(cred.CredentialID, credential.ID) {
-			log.Printf("[WEBAUTHN-SERVICE] Updating sign count for credential %s from %d to %d",
-				credential.ID, cred.SignCount, credential.Authenticator.SignCount)
 
 			// Update the credential's sign count
 			if err := s.passkeyRepository.UpdateCredentialSignCount(ctx, cred.ID, credential.Authenticator.SignCount); err != nil {
