@@ -25,7 +25,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl, r2Storage *storage.R2Storage) (
+func initializeServices(db *mongo.Database, r2Storage storage.Storage, mailgunClient *mailgun.MailgunImpl) (
 	ports.UserService,
 	ports.AuthService,
 	ports.ExpressionService,
@@ -36,6 +36,8 @@ func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl, r2Stor
 	ports.WebAuthnService,
 	ports.SessionService,
 	ports.StatisticsService,
+	ports.SongService,
+	error,
 ) {
 	// Initialize repositories
 	userRepo := mongodb.NewUserRepository(db)
@@ -45,6 +47,7 @@ func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl, r2Stor
 	sessionRepo := mongodb.NewSessionRepository(db)
 	statsRepo := mongodb.NewStatisticsRepository(db)
 	passkeyRepo := mongodb.NewPasskeyRepository(db)
+	songRepo := mongodb.NewSongRepository(db)
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
@@ -56,12 +59,18 @@ func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl, r2Stor
 	newsletterService := services.NewNewsletterService(mailgunClient)
 	webAuthnService, err := services.NewWebAuthnService(passkeyRepo, userRepo)
 	if err != nil {
-		log.Fatalf("Failed to initialize WebAuthn service: %v", err)
+		return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, err
 	}
 	sessionService := services.NewSessionService(sessionRepo)
 	statsService := services.NewStatisticsService(statsRepo, userRepo, expressionRepo)
+	songService := services.NewSongService(songRepo)
 
-	return userService, authService, expressionService, acknowledgementService, proofNFTService, feedService, newsletterService, webAuthnService, sessionService, statsService
+	// Ensure indexes
+	if err := songRepo.EnsureIndexes(); err != nil {
+		log.Printf("Failed to ensure song indexes: %v", err)
+	}
+
+	return userService, authService, expressionService, acknowledgementService, proofNFTService, feedService, newsletterService, webAuthnService, sessionService, statsService, songService, nil
 }
 
 func getProjectRoot() string {
@@ -81,7 +90,10 @@ func setupHandlers(app *fiber.App) *handlers.Handlers {
 	}
 
 	// Initialize services
-	userService, authService, expressionService, acknowledgementService, proofNFTService, feedService, newsletterService, webAuthnService, sessionService, statsService := initServices(db, mailgunClient, expressionsR2Storage)
+	userService, authService, expressionService, acknowledgementService, proofNFTService, feedService, newsletterService, webAuthnService, sessionService, statsService, songService, err := initializeServices(db, expressionsR2Storage, mailgunClient)
+	if err != nil {
+		log.Fatalf("Failed to initialize services: %v", err)
+	}
 
 	// Initialize handlers
 	handlers := handlers.NewHandlers(
@@ -95,6 +107,7 @@ func setupHandlers(app *fiber.App) *handlers.Handlers {
 		webAuthnService,
 		sessionService,
 		newsletterService,
+		songService,
 	)
 
 	// Setup routes with user service for feed handler

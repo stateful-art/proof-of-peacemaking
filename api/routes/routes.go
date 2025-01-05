@@ -22,19 +22,19 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	}))
 
 	// [DEVELOPMENT PURPOSE] Add cache control headers for HTML templates
-	// app.Use(func(c *fiber.Ctx) error {
-	// 	path := c.Path()
-	// 	// Add no-cache headers for HTML pages and critical assets
-	// 	if path == "/" || path == "/learn" || path == "/feed" || path == "/account" || path == "/dashboard" ||
-	// 		path == "/static/css/navbar.css" ||
-	// 		strings.HasPrefix(path, "/static/css/") ||
-	// 		strings.HasPrefix(path, "/static/js/") {
-	// 		c.Set("Cache-Control", "no-cache, must-revalidate")
-	// 		c.Set("Pragma", "no-cache")
-	// 		c.Set("Expires", "0")
-	// 	}
-	// 	return c.Next()
-	// })
+	app.Use(func(c *fiber.Ctx) error {
+		path := c.Path()
+		// Add no-cache headers for HTML pages and critical assets
+		if path == "/" || path == "/learn" || path == "/listen" || path == "/feed" || path == "/account" || path == "/dashboard" ||
+			path == "/static/css/navbar.css" ||
+			strings.HasPrefix(path, "/static/css/") ||
+			strings.HasPrefix(path, "/static/js/") {
+			c.Set("Cache-Control", "no-cache, must-revalidate")
+			c.Set("Pragma", "no-cache")
+			c.Set("Expires", "0")
+		}
+		return c.Next()
+	})
 
 	// Add error handling middleware
 	app.Use(func(c *fiber.Ctx) error {
@@ -88,6 +88,32 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	// Public routes
 	app.Get("/api/countries/search", countryHandler.SearchCountries)
 
+	// YouTube routes (public)
+	app.Get("/youtube/playlist", h.YouTube.GetPlaylist)
+
+	// Song routes (some protected, some public)
+	app.Get("/api/songs/current", func(c *fiber.Ctx) error {
+		song, err := h.Song.GetCurrentlyPlaying(c)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+
+		if song == nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "No song currently playing",
+			})
+		}
+
+		return c.JSON(song)
+	})
+	app.Get("/api/songs/queue", h.Song.GetQueue)
+	app.Get("/api/songs/archive", h.Song.GetArchive)
+	app.Get("/api/songs/next", h.Song.GetNextSong)
+	app.Post("/api/songs", authMiddleware.Authenticate(), h.Song.AddSong)
+	app.Post("/api/songs/:id/played", h.Song.MarkSongAsPlayed)
+
 	// Home page (public)
 	app.Get("/", authMiddleware.Optional(), func(c *fiber.Ctx) error {
 		data := fiber.Map{
@@ -137,6 +163,38 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 		return c.Render("learn", data, "")
 	})
 
+	app.Get("/listen", authMiddleware.Optional(), func(c *fiber.Ctx) error {
+		data := fiber.Map{
+			"Title": "Proof of Peacemaking - Listen",
+		}
+
+		// Add user data if available
+		if userIdentifier := c.Locals("userAddress"); userIdentifier != nil {
+			if identifier, ok := userIdentifier.(string); ok && identifier != "" {
+				var user *domain.User
+				var err error
+				if strings.Contains(identifier, "@") {
+					user, err = h.User.GetUserService().GetUserByEmail(c.Context(), identifier)
+				} else {
+					user, err = h.User.GetUserService().GetUserByAddress(c.Context(), identifier)
+				}
+				if err == nil && user != nil {
+					data["User"] = fiber.Map{"Email": user.Email, "Address": user.Address}
+				}
+			}
+		}
+
+		// Get currently playing song if any
+		song, err := h.Song.GetCurrentlyPlaying(c)
+		if err != nil {
+			log.Printf("Error getting current song: %v", err)
+		} else if song != nil {
+			data["CurrentSong"] = song
+		}
+
+		return c.Render("listen", data, "")
+	})
+
 	app.Post("/join-newsletter", newsletterHandler.HandleNewsletterRegistration)
 
 	// Public auth routes
@@ -175,7 +233,9 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	app.Get("/dashboard/expressions", authMiddleware.Authenticate(), h.Dashboard.GetExpressions)
 	app.Get("/dashboard/acknowledgements", authMiddleware.Authenticate(), h.Dashboard.GetAcknowledgements)
 
+	// Protected API routes
 	api := app.Group("/api", authMiddleware.Authenticate())
+
 	// Notification routes
 	notifications := api.Group("/notifications")
 	notifications.Get("/", h.Notification.GetUserNotifications)

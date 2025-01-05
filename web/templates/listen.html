@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <style>
+        :root {
+            --primary-color: #1db954;
+            --primary-hover: #1ed760;
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --text-color: #ffffff;
+            --text-secondary: #b3b3b3;
+            --border-color: #333333;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            min-height: 100vh;
+        }
+
+        .hero {
+            padding: 60px 20px;
+            text-align: center;
+            background: linear-gradient(to bottom, rgba(30,30,30,0.8), var(--bg-color));
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin: 0 0 20px 0;
+            font-weight: 700;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .player-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .now-playing {
+            background: var(--surface-color);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .now-playing-thumbnail {
+            width: 120px;
+            height: 68px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        .now-playing-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .now-playing-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .now-playing-meta {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-color);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-color);
+            width: 0%;
+            transition: width 1s linear;
+        }
+
+        #youtube-player {
+            aspect-ratio: 16/9;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: var(--surface-color);
+        }
+
+        .queue-section {
+            background: var(--surface-color);
+            border-radius: 8px;
+            padding: 20px;
+            height: calc(100vh - 200px);
+            position: sticky;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            background: var(--bg-color);
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .songs-list {
+            flex: 1;
+            overflow-y: auto;
+            margin: 0 -20px;
+            padding: 0 20px;
+        }
+
+        .song-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-color);
+            border-radius: 4px;
+            margin-bottom: 8px;
+            text-decoration: none;
+            color: var(--text-color);
+        }
+
+        .song-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .song-thumbnail {
+            width: 80px;
+            height: 45px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        .song-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .song-title {
+            font-size: 14px;
+            margin: 0 0 4px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .song-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .add-song-toggle {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            z-index: 1;
+        }
+
+        .add-song-toggle:hover {
+            background: var(--primary-hover);
+        }
+
+        .url-input-container {
+            background: var(--bg-color);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .url-input-container.open {
+            display: block;
+        }
+
+        .url-input-container input {
+            width: 100%;
+            padding: 12px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-color);
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .url-input-container button {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-color);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .url-input-container button:hover {
+            background: var(--primary-hover);
+        }
+
+        .queue-position {
+            margin-top: 10px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .error-message {
+            color: #ff4444;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .queue-section {
+                height: 400px;
+                position: static;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    {{template "navbar" .}}
+    
+    <div class="hero">
+        <h1>Listen Together</h1>
+        <p>Share and discover music through YouTube playlists. A space where music brings people together.</p>
+    </div>
+
+    <div class="main-content">
+        <div class="player-section">
+            <div class="now-playing" id="nowPlaying">
+                <img class="now-playing-thumbnail" id="currentThumbnail" src="" alt="Now playing">
+                <div class="now-playing-info">
+                    <h2 class="now-playing-title" id="currentTitle">Nothing playing</h2>
+                    <div class="now-playing-meta" id="currentMeta"></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="youtube-player"></div>
+        </div>
+
+        <div class="queue-section">
+            {{if .User}}
+            <button class="add-song-toggle" id="addSongToggle">+</button>
+            <div class="url-input-container" id="urlInputContainer">
+                <input type="text" id="songUrl" placeholder="Enter YouTube video URL" required>
+                <button id="addSongBtn">Add to Queue</button>
+                <div class="error-message" id="errorMessage"></div>
+                <div class="queue-position" id="queuePosition"></div>
+            </div>
+            {{end}}
+
+            <div class="tabs">
+                <button class="tab active" id="queueTab">Queue</button>
+                <button class="tab" id="archiveTab">Archive</button>
+            </div>
+
+            <div class="songs-list" id="queueList">
+                <!-- Queue songs will be rendered here -->
+            </div>
+
+            <div class="songs-list" id="archiveList" style="display: none;">
+                <!-- Archive songs will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let player;
+        let currentVideoId = null;
+        let currentVideoStartTime = null;
+        let progressInterval = null;
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('youtube-player', {
+                height: '100%',
+                width: '100%',
+                videoId: '',
+                playerVars: {
+                    autoplay: 1,
+                    controls: 0, // Disable controls
+                    disablekb: 1, // Disable keyboard controls
+                    modestbranding: 1,
+                    rel: 0,
+                    showinfo: 0,
+                    iv_load_policy: 3 // Disable annotations
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
+                }
+            });
+        }
+
+        function updateProgress() {
+            if (!player || !currentVideoStartTime) return;
+            
+            const now = Date.now();
+            const elapsed = (now - currentVideoStartTime) / 1000;
+            const duration = player.getDuration();
+            const progress = (elapsed / duration) * 100;
+            
+            document.getElementById('progressFill').style.width = `${Math.min(progress, 100)}%`;
+            
+            // Update "Started X ago" text
+            const timeAgo = Math.floor(elapsed);
+            document.getElementById('currentMeta').textContent = `Started ${formatTime(timeAgo)} ago`;
+            
+            // If we're past the duration, try to get next song
+            if (elapsed >= duration) {
+                clearInterval(progressInterval);
+                markCurrentSongAsPlayed();
+            }
+        }
+
+        function updateNowPlaying(videoId, startTime) {
+            const thumbnail = document.getElementById('currentThumbnail');
+            thumbnail.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+
+            // Get video details from YouTube API
+            fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('currentTitle').textContent = data.title;
+                    const timeAgo = Math.floor((Date.now() - startTime) / 1000);
+                    document.getElementById('currentMeta').textContent = `Started ${formatTime(timeAgo)} ago`;
+                });
+        }
+
+        function formatTime(seconds) {
+            if (seconds < 60) return `${seconds}s`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+            return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+        }
+
+        function onPlayerReady(event) {
+            player.mute(); // Start muted
+            checkForCurrentSong();
+            // Update progress every second
+            setInterval(updateProgress, 1000);
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.ENDED || event.data === YT.PlayerState.PAUSED) {
+                markCurrentSongAsPlayed();
+            }
+        }
+
+        function onPlayerError(event) {
+            console.error('Player error:', event);
+            markCurrentSongAsPlayed(); // Skip problematic videos
+        }
+
+        function checkForCurrentSong() {
+            fetch('/api/songs/current')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.url) {
+                        const videoId = extractVideoId(data.url);
+                        if (videoId !== currentVideoId) {
+                            currentVideoId = videoId;
+                            currentVideoStartTime = Date.now();
+                            player.loadVideoById(videoId);
+                            updateNowPlaying(videoId, currentVideoStartTime);
+                        }
+                    } else {
+                        getNextSong();
+                    }
+                })
+                .catch(() => getNextSong());
+        }
+
+        function getNextSong() {
+            fetch('/api/songs/next')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.url) {
+                        const videoId = extractVideoId(data.url);
+                        currentVideoId = videoId;
+                        currentVideoStartTime = Date.now();
+                        player.loadVideoById(videoId);
+                        updateNowPlaying(videoId, currentVideoStartTime);
+                    }
+                });
+        }
+
+        function markCurrentSongAsPlayed() {
+            if (currentVideoId) {
+                fetch(`/api/songs/${currentVideoId}/played`, { method: 'POST' })
+                    .then(() => {
+                        currentVideoId = null;
+                        currentVideoStartTime = null;
+                        checkForCurrentSong();
+                    });
+            }
+        }
+
+        function extractVideoId(url) {
+            const match = url.match(/[?&]v=([^&]+)/);
+            return match ? match[1] : '';
+        }
+
+        // Add song toggle functionality
+        const addSongToggle = document.getElementById('addSongToggle');
+        const urlInputContainer = document.getElementById('urlInputContainer');
+        const queuePosition = document.getElementById('queuePosition');
+
+        if (addSongToggle) {
+            addSongToggle.addEventListener('click', () => {
+                urlInputContainer.classList.toggle('open');
+                if (!urlInputContainer.classList.contains('open')) {
+                    songUrl.value = '';
+                    errorMessage.textContent = '';
+                    queuePosition.textContent = '';
+                }
+            });
+        }
+
+        // Tab switching functionality
+        const queueTab = document.getElementById('queueTab');
+        const archiveTab = document.getElementById('archiveTab');
+        const queueList = document.getElementById('queueList');
+        const archiveList = document.getElementById('archiveList');
+
+        queueTab.addEventListener('click', () => {
+            queueTab.classList.add('active');
+            archiveTab.classList.remove('active');
+            queueList.style.display = 'block';
+            archiveList.style.display = 'none';
+            loadQueueSongs();
+        });
+
+        archiveTab.addEventListener('click', () => {
+            archiveTab.classList.add('active');
+            queueTab.classList.remove('active');
+            archiveList.style.display = 'block';
+            queueList.style.display = 'none';
+            loadArchivedSongs();
+        });
+
+        function createSongElement(song) {
+            const songItem = document.createElement('a');
+            songItem.href = `https://youtube.com/watch?v=${extractVideoId(song.url)}`;
+            songItem.target = '_blank';
+            songItem.className = 'song-item';
+            
+            const thumbnail = document.createElement('img');
+            thumbnail.src = `https://img.youtube.com/vi/${extractVideoId(song.url)}/default.jpg`;
+            thumbnail.className = 'song-thumbnail';
+            thumbnail.alt = 'Video thumbnail';
+
+            const info = document.createElement('div');
+            info.className = 'song-info';
+            
+            const title = document.createElement('h3');
+            title.className = 'song-title';
+            title.textContent = song.title || 'Loading...';
+
+            // Get video title from YouTube
+            fetch(`https://noembed.com/embed?url=${song.url}`)
+                .then(response => response.json())
+                .then(data => {
+                    title.textContent = data.title;
+                });
+
+            const meta = document.createElement('div');
+            meta.className = 'song-meta';
+            meta.textContent = `Added by ${song.addedBy}`;
+
+            info.appendChild(title);
+            info.appendChild(meta);
+            songItem.appendChild(thumbnail);
+            songItem.appendChild(info);
+
+            return songItem;
+        }
+
+        function loadQueueSongs() {
+            fetch('/api/songs/queue')
+                .then(response => response.json())
+                .then(songs => {
+                    queueList.innerHTML = '';
+                    songs.forEach(song => {
+                        queueList.appendChild(createSongElement(song));
+                    });
+                });
+        }
+
+        function loadArchivedSongs() {
+            fetch('/api/songs/archive')
+                .then(response => response.json())
+                .then(songs => {
+                    archiveList.innerHTML = '';
+                    songs.forEach(song => {
+                        archiveList.appendChild(createSongElement(song));
+                    });
+                });
+        }
+
+        // Add song functionality
+        const addSongBtn = document.getElementById('addSongBtn');
+        const songUrl = document.getElementById('songUrl');
+        const errorMessage = document.getElementById('errorMessage');
+
+        if (addSongBtn && songUrl) {
+            addSongBtn.addEventListener('click', () => {
+                fetch('/api/songs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: songUrl.value }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        errorMessage.textContent = data.error;
+                        queuePosition.textContent = '';
+                    } else {
+                        songUrl.value = '';
+                        errorMessage.textContent = '';
+                        loadQueueSongs(); // Refresh the queue
+                        setTimeout(() => {
+                            urlInputContainer.classList.remove('open');
+                        }, 3000);
+                    }
+                })
+                .catch(error => {
+                    errorMessage.textContent = 'An error occurred. Please try again.';
+                    queuePosition.textContent = '';
+                });
+            });
+        }
+
+        // Load YouTube IFrame API
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        // Initial loads
+        loadQueueSongs();
+
+        // Check for current song more frequently
+        setInterval(checkForCurrentSong, 3000);
+    </script>
+</body>
+</html> 

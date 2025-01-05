@@ -15,6 +15,8 @@ type Handlers struct {
 	WebAuthn        *WebAuthnHandler
 	Statistics      *StatisticsHandler
 	Account         *AccountHandler
+	YouTube         *YouTubeHandler
+	Song            *SongHandler
 }
 
 func NewHandlers(
@@ -28,6 +30,7 @@ func NewHandlers(
 	webAuthnService ports.WebAuthnService,
 	sessionService ports.SessionService,
 	newsletterService ports.NewsletterService,
+	songService ports.SongService,
 ) *Handlers {
 	return &Handlers{
 		Auth:            NewAuthHandler(authService, userService),
@@ -41,5 +44,7 @@ func NewHandlers(
 		WebAuthn:        NewWebAuthnHandler(webAuthnService, sessionService, userService),
 		Newsletter:      NewNewsletterHandler(newsletterService),
 		Dashboard:       NewDashboardHandler(expressionService, acknowledgementService, userService, proofNFTService),
+		YouTube:         NewYouTubeHandler(),
+		Song:            NewSongHandler(songService),
 	}
 }
