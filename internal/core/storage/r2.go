@@ -19,8 +19,8 @@ import (
 
 const (
 	maxRetries      = 3
-	defaultCacheAge = 3600             // 1 hour in seconds
-	maxUploadSize   = 10 * 1024 * 1024 // 10MB
+	defaultCacheAge = 3600              // 1 hour in seconds
+	maxUploadSize   = 100 * 1024 * 1024 // 10MB
 )
 
 type R2Storage struct {
