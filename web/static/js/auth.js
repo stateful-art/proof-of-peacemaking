@@ -9,7 +9,7 @@ async function openAuthModal() {
     
     // First check if user is already connected
     try {
-        const response = await fetch('/api/auth/session');
+        const response = await fetch('/auth/session');
         const data = await response.json();
         
         if (data.authenticated) {
@@ -65,6 +65,13 @@ function switchAuthMode(mode) {
     const registerForm = document.getElementById('registerForm');
     const loginTab = document.querySelector('[onclick="switchAuthMode(\'login\')"]');
     const registerTab = document.querySelector('[onclick="switchAuthMode(\'register\')"]');
+    const errorDiv = document.getElementById('registerError');
+
+    // Clear any existing error messages
+    if (errorDiv) {
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+    }
 
     if (mode === 'login') {
         loginForm.classList.add('active');
@@ -86,11 +93,23 @@ async function handleEmailLogin(event) {
     
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
+    const errorDiv = document.getElementById('registerError');
+
+    // Clear any previous error messages
+    if (errorDiv) {
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+    }
 
     console.log('Login form data:', { email }); // Don't log password
 
     if (!email || !password) {
-        alert('Please fill in all fields');
+        if (errorDiv) {
+            errorDiv.textContent = 'Please fill in all fields';
+            errorDiv.style.display = 'block';
+        } else {
+            alert('Please fill in all fields');
+        }
         return;
     }
 
@@ -109,15 +128,29 @@ async function handleEmailLogin(event) {
         
         if (response.ok) {
             console.log('Login successful, reloading page...');
+            // Hide any error messages before reloading
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+            }
             window.location.reload();
         } else {
             const data = await response.json();
             console.error('Login failed:', data.error);
-            alert(data.error || 'Login failed');
+            if (errorDiv) {
+                errorDiv.textContent = data.error || 'Login failed';
+                errorDiv.style.display = 'block';
+            } else {
+                alert(data.error || 'Login failed');
+            }
         }
     } catch (error) {
         console.error('Login error:', error);
-        alert('Login failed. Please try again.');
+        if (errorDiv) {
+            errorDiv.textContent = 'Login failed. Please try again.';
+            errorDiv.style.display = 'block';
+        } else {
+            alert('Login failed. Please try again.');
+        }
     }
 }
 
@@ -621,12 +654,28 @@ async function startPasskeyAuth(mode) {
 async function registerWithPasskey() {
     try {
         // Get user details first
-        const registerForm = document.getElementById('registerForm');
         const email = document.getElementById('registerEmail').value;
         const username = document.getElementById('registerUsername').value;
+        const errorDiv = document.getElementById('registerError');
 
+        // Clear any previous errors
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+        }
+
+        // Validate form fields
         if (!email || !username) {
-            throw new Error('Please fill in your email and username before registering with passkey');
+            const errorMessage = 'Please fill in your email and username before registering with passkey';
+            if (errorDiv) {
+                errorDiv.textContent = errorMessage;
+                errorDiv.style.display = 'block';
+            } else {
+                alert(errorMessage);
+            }
+            // Reset modal state without throwing error
+            resetAuthModal();
+            return;
         }
 
         // Start passkey registration with user details
@@ -649,6 +698,12 @@ async function registerWithPasskey() {
         
         const options = await response.json();
         console.log('Registration options received:', options);
+        
+        // Show passkey UI
+        document.getElementById('authForms').style.display = 'none';
+        document.getElementById('passkeySteps').style.display = 'block';
+        const passkeyStep = document.getElementById('passkeyStep');
+        passkeyStep.classList.add('active');
         
         // Convert base64 strings to ArrayBuffer
         options.publicKey.challenge = base64ToArrayBuffer(options.publicKey.challenge);
@@ -708,9 +763,14 @@ async function registerWithPasskey() {
         
     } catch (error) {
         console.error('Passkey registration error:', error);
-        showError('Passkey registration failed: ' + error.message);
+        const errorDiv = document.getElementById('registerError');
+        if (errorDiv) {
+            errorDiv.textContent = 'Passkey registration failed: ' + error.message;
+            errorDiv.style.display = 'block';
+        } else {
+            alert('Passkey registration failed: ' + error.message);
+        }
         resetAuthModal();
-        throw error;
     }
 }
 
