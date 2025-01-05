@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"bytes"
 	"log"
 	"proofofpeacemaking/internal/core/ports"
+	"text/template"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -31,10 +33,41 @@ func (h *StatisticsHandler) ServeStatisticsPage(c *fiber.Ctx) error {
 		log.Printf("[STATISTICS] Citizenship stats: %v", stats.CitizenshipStats)
 	}
 
-	return c.Render("statistics", fiber.Map{
+	// Create template data
+	data := fiber.Map{
 		"Title":      "Statistics",
 		"Statistics": stats,
-	})
+	}
+
+	// Create a FuncMap with custom functions
+	funcMap := template.FuncMap{
+		"isLast": func(current string, m map[string]int) bool {
+			var keys []string
+			for k := range m {
+				keys = append(keys, k)
+			}
+			return current == keys[len(keys)-1]
+		},
+	}
+
+	// Add the FuncMap to the template
+	tmpl := template.Must(template.New("statistics").Funcs(funcMap).ParseFiles(
+		"web/templates/statistics.html",
+		"web/templates/navbar.html",
+		"web/templates/footer.html",
+	))
+
+	// Create a buffer to render the template
+	var buf bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&buf, "statistics.html", data); err != nil {
+		log.Printf("[STATISTICS] Error rendering template: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to render template",
+		})
+	}
+
+	c.Type("html")
+	return c.Send(buf.Bytes())
 }
 
 // GetStatistics returns the latest statistics

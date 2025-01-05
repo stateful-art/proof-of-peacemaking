@@ -10,10 +10,18 @@
     <link rel="stylesheet" href="/static/css/navbar.css">
     <link rel="stylesheet" href="/static/css/statistics.css">
     <link rel="stylesheet" href="/static/css/footer.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin-top: 1rem;
+        }
+    </style>
 </head>
 <body>
     {{ template "navbar" . }}
-
+    
     <main class="container">
         <h1>Platform Statistics</h1>
         
@@ -37,22 +45,22 @@
 
             <div class="stats-card">
                 <h2>Media Distribution</h2>
-                {{range $type, $count := .Statistics.MediaStats}}
-                <div class="stat-item">
-                    <span class="stat-label">{{$type}}</span>
-                    <span class="stat-value">{{$count}}</span>
+                <div class="chart-container">
+                    <canvas id="mediaChart" 
+                        data-labels="{{range $type, $count := .Statistics.MediaStats}}{{$type}},{{end}}"
+                        data-values="{{range $type, $count := .Statistics.MediaStats}}{{$count}},{{end}}">
+                    </canvas>
                 </div>
-                {{end}}
             </div>
 
             <div class="stats-card">
                 <h2>Global Reach</h2>
-                {{range $code, $count := .Statistics.CitizenshipStats}}
-                <div class="stat-item">
-                    <span class="stat-label">{{$code}}</span>
-                    <span class="stat-value">{{$count}}</span>
+                <div class="chart-container">
+                    <canvas id="reachChart"
+                        data-labels="{{range $country, $count := .Statistics.CitizenshipStats}}{{$country}},{{end}}"
+                        data-values="{{range $country, $count := .Statistics.CitizenshipStats}}{{$count}},{{end}}">
+                    </canvas>
                 </div>
-                {{end}}
             </div>
         </div>
         {{else}}
@@ -61,5 +69,71 @@
     </main>
 
     {{ template "footer" . }}
+    {{if .Statistics}}
+    <script>
+        // Media Distribution Chart
+        const mediaChart = document.getElementById('mediaChart');
+        const mediaLabels = mediaChart.dataset.labels.split(',').filter(Boolean);
+        const mediaCounts = mediaChart.dataset.values.split(',').filter(Boolean).map(Number);
+
+        new Chart(mediaChart.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: mediaLabels,
+                datasets: [{
+                    data: mediaCounts,
+                    backgroundColor: [
+                        '#3B82F6', // blue
+                        '#10B981', // green
+                        '#F59E0B', // yellow
+                        '#EF4444'  // red
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Global Reach Chart
+        const reachChart = document.getElementById('reachChart');
+        const countryLabels = reachChart.dataset.labels.split(',').filter(Boolean);
+        const countryCounts = reachChart.dataset.values.split(',').filter(Boolean).map(Number);
+
+        new Chart(reachChart.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: countryLabels,
+                datasets: [{
+                    data: countryCounts,
+                    backgroundColor: [
+                        '#8B5CF6', // purple
+                        '#EC4899', // pink
+                        '#F97316', // orange
+                        '#06B6D4', // cyan
+                        '#84CC16'  // lime
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    </script>
+    {{end}}
 </body>
 </html>
