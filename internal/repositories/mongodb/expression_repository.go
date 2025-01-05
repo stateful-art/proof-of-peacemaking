@@ -191,8 +191,18 @@ func (r *expressionRepository) GetTotalAcknowledgements(ctx context.Context) (in
 func (r *expressionRepository) GetMediaTypeDistribution(ctx context.Context) (map[string]int, error) {
 	pipeline := []bson.M{
 		{
+			"$project": bson.M{
+				"mediaTypes": bson.M{
+					"$objectToArray": "$content",
+				},
+			},
+		},
+		{
+			"$unwind": "$mediaTypes",
+		},
+		{
 			"$group": bson.M{
-				"_id": "$mediaType",
+				"_id": "$mediaTypes.k",
 				"count": bson.M{
 					"$sum": 1,
 				},

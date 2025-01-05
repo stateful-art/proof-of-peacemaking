@@ -179,7 +179,7 @@ func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
 		})
 	}
 
-	// After creating the expression, update statistics
+	// After creating the expression and uploading all media, update statistics
 	if err := h.statsService.UpdateStatisticsAfterExpression(c.Context()); err != nil {
 		log.Printf("[EXPRESSION] Warning: Failed to update statistics: %v", err)
 		// Don't return error here, as the expression was created successfully
