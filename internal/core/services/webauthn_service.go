@@ -1,8 +1,11 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"log"
+	"os"
 	"proofofpeacemaking/internal/core/domain"
 	"proofofpeacemaking/internal/core/ports"
 
@@ -22,10 +25,12 @@ type WebAuthnService struct {
 
 // NewWebAuthnService creates a new WebAuthn service
 func NewWebAuthnService(passkeyRepo ports.PasskeyRepository, userRepo ports.UserRepository) (*WebAuthnService, error) {
+
+	log.Printf("@ NewWebAuthnService with port %s", os.Getenv("PORT"))
 	wconfig := &webauthn.Config{
 		RPDisplayName: "Proof of Peacemaking",
 		RPID:          "localhost", // Change this for production
-		RPOrigins:     []string{"http://localhost:3003"},
+		RPOrigins:     []string{fmt.Sprintf("http://localhost:%s", os.Getenv("PORT"))},
 		Timeouts: webauthn.TimeoutsConfig{
 			Login: webauthn.TimeoutConfig{
 				Timeout: time.Second * 60,
@@ -76,9 +81,14 @@ func (u *WebAuthnUser) WebAuthnCredentials() []webauthn.Credential {
 		credentials = append(credentials, webauthn.Credential{
 			ID:              cred.CredentialID,
 			PublicKey:       cred.PublicKey,
-			AttestationType: "",                                  // Not storing attestation type
-			Transport:       []protocol.AuthenticatorTransport{}, // Not storing transport
-			Flags:           webauthn.CredentialFlags{},          // Not storing flags
+			AttestationType: "",
+			Transport:       []protocol.AuthenticatorTransport{},
+			Flags: webauthn.CredentialFlags{
+				UserPresent:    true,
+				UserVerified:   true,
+				BackupEligible: true,
+				BackupState:    true,
+			},
 			Authenticator: webauthn.Authenticator{
 				AAGUID:    cred.AAGUID,
 				SignCount: cred.SignCount,
@@ -120,18 +130,20 @@ func (s *WebAuthnService) BeginRegistration(ctx context.Context, userID primitiv
 		credentials: credentials,
 	}
 
-	// Configure registration options to support both platform and cross-platform authenticators
+	// Configure registration options to support all authenticator types
 	options, session, err := s.webauthn.BeginRegistration(
 		webAuthnUser,
 		webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
 			ResidentKey:      protocol.ResidentKeyRequirementPreferred,
 			UserVerification: protocol.VerificationPreferred,
+			// Don't specify AuthenticatorAttachment to allow all types
 		}),
 		webauthn.WithExtensions(map[string]interface{}{
 			"credProps": true,
 			"largeBlob": map[string]interface{}{
 				"support": "preferred",
 			},
+			"uvm": true,
 		}),
 		webauthn.WithConveyancePreference(protocol.PreferNoAttestation),
 	)
@@ -239,74 +251,104 @@ func (s *WebAuthnService) BeginAuthentication(ctx context.Context, userID primit
 		credentials: credentials,
 	}
 
-	options, session, err := s.webauthn.BeginLogin(webAuthnUser)
+	// Configure login options to be more lenient with authenticator flags
+	options, session, err := s.webauthn.BeginLogin(
+		webAuthnUser,
+		webauthn.WithUserVerification(protocol.VerificationPreferred),
+	)
 	if err != nil {
 		return nil, webauthn.SessionData{}, fmt.Errorf("failed to begin authentication: %w", err)
 	}
+
+	// Set allowed credentials with proper flags
+	var allowedCredentials []protocol.CredentialDescriptor
+	for _, cred := range webAuthnUser.WebAuthnCredentials() {
+		allowedCredentials = append(allowedCredentials, protocol.CredentialDescriptor{
+			Type:         protocol.PublicKeyCredentialType,
+			CredentialID: cred.ID,
+		})
+	}
+	options.Response.AllowedCredentials = allowedCredentials
 
 	return options, *session, nil
 }
 
 // FinishAuthentication completes the passkey authentication process
 func (s *WebAuthnService) FinishAuthentication(ctx context.Context, userID primitive.ObjectID, sessionData webauthn.SessionData, response *protocol.ParsedCredentialAssertionData) error {
+	log.Printf("[WEBAUTHN-SERVICE] Starting FinishAuthentication for user: %s", userID.Hex())
+
 	user, err := s.userRepository.GetByID(ctx, userID.Hex())
 	if err != nil {
+		log.Printf("[WEBAUTHN-SERVICE] Failed to get user: %v", err)
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 	if user == nil {
+		log.Printf("[WEBAUTHN-SERVICE] User not found: %s", userID.Hex())
 		return fmt.Errorf("user not found")
 	}
+	log.Printf("[WEBAUTHN-SERVICE] Found user: %s", user.Email)
 
 	// Get existing credentials for the user
 	userPasskeys, err := s.passkeyRepository.GetActiveUserPasskeys(ctx, userID)
 	if err != nil {
+		log.Printf("[WEBAUTHN-SERVICE] Failed to get user passkeys: %v", err)
 		return fmt.Errorf("failed to get user passkeys: %w", err)
 	}
+	log.Printf("[WEBAUTHN-SERVICE] Found %d active passkeys for user", len(userPasskeys))
 
 	var credentials []*domain.PasskeyCredential
 	for _, up := range userPasskeys {
 		cred, err := s.passkeyRepository.GetCredentialByID(ctx, up.CredentialID)
 		if err != nil {
+			log.Printf("[WEBAUTHN-SERVICE] Failed to get credential %s: %v", up.CredentialID, err)
 			return fmt.Errorf("failed to get credential: %w", err)
 		}
 		if cred != nil {
 			credentials = append(credentials, cred)
 		}
 	}
+	log.Printf("[WEBAUTHN-SERVICE] Retrieved %d credentials", len(credentials))
 
 	webAuthnUser := &WebAuthnUser{
 		User:        user,
 		credentials: credentials,
 	}
 
+	log.Printf("[WEBAUTHN-SERVICE] Validating login with credential ID: %s", response.ID)
 	credential, err := s.webauthn.ValidateLogin(webAuthnUser, sessionData, response)
 	if err != nil {
-		return fmt.Errorf("failed to finish authentication: %w", err)
+		log.Printf("[WEBAUTHN-SERVICE] Failed to validate login: %v", err)
+		return fmt.Errorf("failed to validate login: %w", err)
 	}
+	log.Printf("[WEBAUTHN-SERVICE] Successfully validated login")
 
-	// Update the credential's sign count
-	existingCred, err := s.passkeyRepository.GetCredentialByCredentialID(ctx, credential.ID)
-	if err != nil {
-		return fmt.Errorf("failed to get credential: %w", err)
-	}
-	if existingCred == nil {
-		return fmt.Errorf("credential not found")
-	}
+	// Update sign count
+	for _, cred := range credentials {
+		if bytes.Equal(cred.CredentialID, credential.ID) {
+			log.Printf("[WEBAUTHN-SERVICE] Updating sign count for credential %s from %d to %d",
+				credential.ID, cred.SignCount, credential.Authenticator.SignCount)
 
-	if err := s.passkeyRepository.UpdateCredentialSignCount(ctx, existingCred.ID, credential.Authenticator.SignCount); err != nil {
-		return fmt.Errorf("failed to update sign count: %w", err)
-	}
+			// Update the credential's sign count
+			if err := s.passkeyRepository.UpdateCredentialSignCount(ctx, cred.ID, credential.Authenticator.SignCount); err != nil {
+				log.Printf("[WEBAUTHN-SERVICE] Failed to update credential sign count: %v", err)
+				return fmt.Errorf("failed to update sign count: %w", err)
+			}
 
-	// Find the user-passkey relationship and update last used
-	for _, up := range userPasskeys {
-		if up.CredentialID == existingCred.ID {
-			deviceInfo := "" // Get device info from the client
-			if err := s.passkeyRepository.UpdateUserPasskeyLastUsed(ctx, up.ID, deviceInfo); err != nil {
-				return fmt.Errorf("failed to update last used: %w", err)
+			// Find the user-passkey relationship and update last used
+			for _, up := range userPasskeys {
+				if up.CredentialID == cred.ID {
+					deviceInfo := "" // Get device info from the client
+					if err := s.passkeyRepository.UpdateUserPasskeyLastUsed(ctx, up.ID, deviceInfo); err != nil {
+						log.Printf("[WEBAUTHN-SERVICE] Failed to update last used: %v", err)
+						return fmt.Errorf("failed to update last used: %w", err)
+					}
+					break
+				}
 			}
 			break
 		}
 	}
 
+	log.Printf("[WEBAUTHN-SERVICE] Authentication completed successfully")
 	return nil
 }

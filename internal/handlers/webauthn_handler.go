@@ -309,16 +309,21 @@ func (h *WebAuthnHandler) BeginAuthentication(c *fiber.Ctx) error {
 
 // FinishAuthentication completes the passkey authentication process
 func (h *WebAuthnHandler) FinishAuthentication(c *fiber.Ctx) error {
+	log.Printf("[WEBAUTHN] Starting FinishAuthentication")
+
 	// Get session
 	session, err := h.sessionService.GetSession(c.Context(), c.Cookies("auth_session"))
 	if err != nil {
+		log.Printf("[WEBAUTHN] Failed to get auth session: %v", err)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "unauthorized",
 		})
 	}
+	log.Printf("[WEBAUTHN] Found auth session for user: %s", session.UserID)
 
 	userID, err := primitive.ObjectIDFromHex(session.UserID)
 	if err != nil {
+		log.Printf("[WEBAUTHN] Invalid user ID format: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid user ID",
 		})
@@ -326,6 +331,7 @@ func (h *WebAuthnHandler) FinishAuthentication(c *fiber.Ctx) error {
 
 	// Get session data
 	if session.WebAuthnData == "" {
+		log.Printf("[WEBAUTHN] No WebAuthn data found in session")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "no session data found",
 		})
@@ -333,29 +339,39 @@ func (h *WebAuthnHandler) FinishAuthentication(c *fiber.Ctx) error {
 
 	var sessionData webauthn.SessionData
 	if err := json.Unmarshal([]byte(session.WebAuthnData), &sessionData); err != nil {
+		log.Printf("[WEBAUTHN] Failed to deserialize session data: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to deserialize session data",
 		})
 	}
+	log.Printf("[WEBAUTHN] Successfully deserialized session data")
+
+	// Log request body for debugging
+	body := c.Body()
+	log.Printf("[WEBAUTHN] Request body: %s", string(body))
 
 	// Parse response
-	response, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader(c.Body()))
+	response, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader(body))
 	if err != nil {
+		log.Printf("[WEBAUTHN] Failed to parse credential response: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "failed to parse response",
 		})
 	}
+	log.Printf("[WEBAUTHN] Successfully parsed credential response")
 
 	// Complete authentication
 	if err := h.webAuthnService.FinishAuthentication(c.Context(), userID, sessionData, response); err != nil {
+		log.Printf("[WEBAUTHN] Failed to finish authentication: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
+	log.Printf("[WEBAUTHN] Successfully finished authentication")
 
 	// Delete the temporary auth session
 	if err := h.sessionService.Delete(c.Context(), session.Token); err != nil {
-		log.Printf("Failed to delete auth session: %v", err)
+		log.Printf("[WEBAUTHN] Failed to delete auth session: %v", err)
 	}
 
 	// Create a new authenticated session
@@ -366,10 +382,12 @@ func (h *WebAuthnHandler) FinishAuthentication(c *fiber.Ctx) error {
 	}
 
 	if err := h.sessionService.Create(c.Context(), authSession); err != nil {
+		log.Printf("[WEBAUTHN] Failed to create authenticated session: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to create authenticated session",
 		})
 	}
+	log.Printf("[WEBAUTHN] Created new authenticated session")
 
 	// Set authenticated session cookie
 	c.Cookie(&fiber.Cookie{
@@ -380,6 +398,7 @@ func (h *WebAuthnHandler) FinishAuthentication(c *fiber.Ctx) error {
 		SameSite: "Strict",
 		MaxAge:   86400, // 24 hours
 	})
+	log.Printf("[WEBAUTHN] Set session cookie")
 
 	return c.JSON(fiber.Map{
 		"message": "authenticated successfully",
