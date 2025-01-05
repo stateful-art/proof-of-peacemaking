@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -22,7 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl) (
+func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl, expressionsR2Storage *storage.R2Storage) (
 	ports.NotificationService,
 	ports.AuthService,
 	ports.ExpressionService,
@@ -31,6 +33,8 @@ func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl) (
 	ports.FeedService,
 	ports.UserService,
 	ports.NewsletterService,
+	ports.WebAuthnService,
+	ports.SessionService,
 ) {
 	// Initialize repositories
 	userRepo := mongodb.NewUserRepository(db)
@@ -39,24 +43,11 @@ func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl) (
 	acknowledgementRepo := mongodb.NewAcknowledgementRepository(db)
 	notificationRepo := mongodb.NewNotificationRepository(db)
 	proofNFTRepo := mongodb.NewProofNFTRepository(db)
-
-	// Initialize R2 storage for expressions
-	expressionsConfig, err := config.GetR2Config("EXPRESSIONS")
-	if err != nil {
-		log.Fatalf("Failed to get expressions R2 config: %v", err)
-	}
-	expressionsR2Storage, err := storage.NewR2Storage(
-		expressionsConfig.S3AccessKeyID,
-		expressionsConfig.S3SecretKey,
-		expressionsConfig.AccountID,
-		expressionsConfig.Bucket,
-	)
-	if err != nil {
-		log.Fatalf("Failed to initialize expressions R2 storage: %v", err)
-	}
+	passkeyRepo := mongodb.NewPasskeyRepository(db)
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
+	sessionService := services.NewSessionService(sessionRepo)
 	authService := services.NewAuthService(userService, sessionRepo)
 	expressionService := services.NewExpressionService(expressionRepo, acknowledgementRepo, expressionsR2Storage)
 	acknowledgementService := services.NewAcknowledgementService(acknowledgementRepo)
@@ -64,8 +55,12 @@ func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl) (
 	proofNFTService := services.NewProofNFTService(userRepo, proofNFTRepo)
 	feedService := services.NewFeedService(expressionService, userService, acknowledgementService)
 	newsletterService := services.NewNewsletterService(mailgunClient)
+	webAuthnService, err := services.NewWebAuthnService(passkeyRepo, userRepo)
+	if err != nil {
+		log.Fatalf("Failed to initialize WebAuthn service: %v", err)
+	}
 
-	return notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService, newsletterService
+	return notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService, newsletterService, webAuthnService, sessionService
 }
 
 func getProjectRoot() string {
@@ -77,8 +72,15 @@ func setupHandlers(app *fiber.App) *handlers.Handlers {
 	// Setup MongoDB connection
 	db := mongodb.Connect()
 	mailgunClient := getMailgunClient()
+
+	// Initialize R2 storage
+	expressionsR2Storage, err := initExpressionsR2Storage()
+	if err != nil {
+		log.Fatalf("Failed to initialize expressions R2 storage: %v", err)
+	}
+
 	// Initialize services
-	notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService, newsletterService := initServices(db, mailgunClient)
+	notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService, newsletterService, webAuthnService, sessionService := initServices(db, mailgunClient, expressionsR2Storage)
 
 	// Create handlers
 	h := handlers.NewHandlers(
@@ -90,6 +92,8 @@ func setupHandlers(app *fiber.App) *handlers.Handlers {
 		feedService,
 		userService,
 		newsletterService,
+		webAuthnService,
+		sessionService,
 	)
 
 	// Setup routes with user service for feed handler
@@ -110,6 +114,24 @@ func initTemplateEngine() *html.Engine {
 	})
 
 	return engine
+}
+
+func initExpressionsR2Storage() (*storage.R2Storage, error) {
+	expressionsConfig, err := config.GetR2Config("EXPRESSIONS")
+	if err != nil {
+		log.Fatalf("Failed to get expressions R2 config: %v", err)
+	}
+	expressionsR2Storage, err := storage.NewR2Storage(
+		expressionsConfig.S3AccessKeyID,
+		expressionsConfig.S3SecretKey,
+		expressionsConfig.AccountID,
+		expressionsConfig.Bucket,
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize expressions R2 storage: %v", err)
+	}
+
+	return expressionsR2Storage, nil
 }
 
 func main() {
@@ -140,20 +162,20 @@ func main() {
 
 	// Setup static files
 	app.Static("/static", filepath.Join(projectRoot, "web/static"))
-	app.Static("/uploads", filepath.Join(projectRoot, "uploads"))
-
-	// Create uploads directories if they don't exist
-	uploadsPath := filepath.Join(projectRoot, "uploads")
-	for _, dir := range []string{"images", "audio", "video"} {
-		if err := os.MkdirAll(filepath.Join(uploadsPath, dir), 0755); err != nil {
-			log.Printf("Warning: Failed to create uploads directory %s: %v", dir, err)
-		}
-	}
 
 	// Setup handlers and routes
 	setupHandlers(app)
 
-	startServer(app)
+	// Start server in a goroutine
+	go func() {
+		port := getPort()
+		if err := app.Listen(port); err != nil {
+			log.Printf("Server error: %v", err)
+		}
+	}()
+
+	// Use graceful shutdown
+	gracefulShutdown(app)
 }
 
 func loadEnvironment(projectRoot string) {
@@ -188,4 +210,17 @@ func getMailgunClient() *mailgun.MailgunImpl {
 	var domain string = os.Getenv("EMAIL_SENDER_DOMAIN")
 	var key string = os.Getenv("MAILGUN_APIKEY")
 	return mailgun.NewMailgun(domain, key)
+}
+
+// add a graceful shutdown and use it in the main function
+func gracefulShutdown(app *fiber.App) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	log.Println("Shutting down server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := app.ShutdownWithContext(ctx); err != nil {
+		log.Fatalf("Failed to shutdown server: %v", err)
+	}
 }

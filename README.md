@@ -311,6 +311,10 @@ classDiagram
   - Collaborative editing
   - Version control
   - Rich text formatting
+- Authentication enhancement
+  - Passkey support (WebAuthn)
+  - Cross-device synchronization
+  - Biometric authentication
 - KYC integration
   - Citizenship verification
   - Identity validation

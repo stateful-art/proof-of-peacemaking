@@ -163,7 +163,7 @@ func (s *authService) VerifySignature(ctx context.Context, address string, signa
 	// Create session
 	session := &domain.Session{
 		ID:        primitive.NewObjectID(),
-		UserID:    user.ID,
+		UserID:    user.ID.Hex(),
 		Token:     sessionToken,
 		Address:   address,
 		CreatedAt: time.Now(),
@@ -211,7 +211,7 @@ func (s *authService) Register(ctx context.Context, address string, email string
 
 	session := &domain.Session{
 		ID:        primitive.NewObjectID(),
-		UserID:    user.ID,
+		UserID:    user.ID.Hex(),
 		Token:     sessionToken,
 		Address:   address,
 		ExpiresAt: time.Now().Add(24 * time.Hour),
@@ -331,7 +331,7 @@ func (s *authService) RegisterWithEmail(ctx context.Context, email string, passw
 
 	session := &domain.Session{
 		ID:        primitive.NewObjectID(),
-		UserID:    user.ID,
+		UserID:    user.ID.Hex(),
 		Token:     sessionToken,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -366,7 +366,7 @@ func (s *authService) LoginWithEmail(ctx context.Context, email string, password
 
 	session := &domain.Session{
 		ID:        primitive.NewObjectID(),
-		UserID:    user.ID,
+		UserID:    user.ID.Hex(),
 		Token:     sessionToken,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),

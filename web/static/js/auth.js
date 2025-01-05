@@ -1,5 +1,7 @@
-// Make openAuthModal available globally
+// Make functions available globally
 window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.startPasskeyAuth = startPasskeyAuth;
 
 // Auth Modal Control
 async function openAuthModal() {
@@ -592,4 +594,233 @@ document.addEventListener('DOMContentLoaded', () => {
             await startWalletConnection();
         });
     }
-}); 
+});
+
+// Passkey Authentication Functions
+async function startPasskeyAuth(mode) {
+    // Hide auth forms and show passkey steps
+    document.getElementById('authForms').style.display = 'none';
+    document.getElementById('passkeySteps').style.display = 'block';
+    
+    const passkeyStep = document.getElementById('passkeyStep');
+    passkeyStep.classList.add('active');
+    
+    try {
+        if (mode === 'register') {
+            await registerWithPasskey();
+        } else {
+            await loginWithPasskey();
+        }
+    } catch (error) {
+        console.error('Passkey authentication error:', error);
+        showError('Passkey authentication failed. Please try again.');
+        resetAuthModal();
+    }
+}
+
+async function registerWithPasskey() {
+    try {
+        // Get user details first
+        const registerForm = document.getElementById('registerForm');
+        const email = document.getElementById('registerEmail').value;
+        const username = document.getElementById('registerUsername').value;
+
+        if (!email || !username) {
+            throw new Error('Please fill in your email and username before registering with passkey');
+        }
+
+        // Start passkey registration with user details
+        const response = await fetch('/auth/passkey/register/begin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email,
+                username
+            }),
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to get registration options');
+        }
+        
+        const options = await response.json();
+        
+        // Convert base64 strings to ArrayBuffer
+        options.publicKey.challenge = base64ToArrayBuffer(options.publicKey.challenge);
+        options.publicKey.user.id = base64ToArrayBuffer(options.publicKey.user.id);
+        
+        // Create credentials
+        const credential = await navigator.credentials.create({
+            publicKey: options.publicKey
+        });
+        
+        // Convert credential for sending to server
+        const credentialResponse = {
+            id: credential.id,
+            rawId: arrayBufferToBase64(credential.rawId),
+            response: {
+                attestationObject: arrayBufferToBase64(credential.response.attestationObject),
+                clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON)
+            },
+            type: credential.type,
+            email,
+            username
+        };
+        
+        // Send credential to server
+        const verifyResponse = await fetch('/auth/passkey/register/finish', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(credentialResponse),
+            credentials: 'include'
+        });
+        
+        if (!verifyResponse.ok) {
+            const data = await verifyResponse.json();
+            throw new Error(data.error || 'Failed to verify registration');
+        }
+        
+        const result = await verifyResponse.json();
+        
+        // Show success and update UI
+        document.querySelector('#passkeyStep .spinner').style.display = 'none';
+        document.querySelector('#passkeyStep .check-icon').style.display = 'flex';
+        document.querySelector('#passkeyStep .step-content p').textContent = 'Passkey registered successfully!';
+        
+        // Handle successful registration
+        handleSuccessfulAuth(result.token);
+        
+    } catch (error) {
+        throw new Error('Passkey registration failed: ' + error.message);
+    }
+}
+
+async function loginWithPasskey() {
+    try {
+        // Get authentication options from server
+        const response = await fetch('/auth/passkey/auth/begin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to get authentication options');
+        }
+        
+        const options = await response.json();
+        
+        // Convert base64 strings to ArrayBuffer
+        options.publicKey.challenge = base64ToArrayBuffer(options.publicKey.challenge);
+        if (options.publicKey.allowCredentials) {
+            options.publicKey.allowCredentials = options.publicKey.allowCredentials.map(credential => ({
+                ...credential,
+                id: base64ToArrayBuffer(credential.id)
+            }));
+        }
+        
+        // Get credentials
+        const credential = await navigator.credentials.get({
+            publicKey: options.publicKey
+        });
+        
+        // Convert credential for sending to server
+        const credentialResponse = {
+            id: credential.id,
+            rawId: arrayBufferToBase64(credential.rawId),
+            response: {
+                authenticatorData: arrayBufferToBase64(credential.response.authenticatorData),
+                clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON),
+                signature: arrayBufferToBase64(credential.response.signature),
+                userHandle: credential.response.userHandle ? arrayBufferToBase64(credential.response.userHandle) : null
+            },
+            type: credential.type
+        };
+        
+        // Send credential to server
+        const verifyResponse = await fetch('/auth/passkey/auth/finish', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(credentialResponse)
+        });
+        
+        if (!verifyResponse.ok) {
+            throw new Error('Failed to verify authentication');
+        }
+        
+        const result = await verifyResponse.json();
+        
+        // Show success and update UI
+        document.querySelector('#passkeyStep .spinner').style.display = 'none';
+        document.querySelector('#passkeyStep .check-icon').style.display = 'flex';
+        document.querySelector('#passkeyStep .step-content p').textContent = 'Successfully authenticated!';
+        
+        // Handle successful login
+        handleSuccessfulAuth(result.token);
+        
+    } catch (error) {
+        throw new Error('Passkey authentication failed: ' + error.message);
+    }
+}
+
+// Utility functions for ArrayBuffer <-> Base64 conversion
+function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+}
+
+function base64ToArrayBuffer(base64) {
+    // Add padding if needed
+    base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) {
+        base64 += '=';
+    }
+    
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+// Helper function to show error messages
+function showError(message) {
+    const errorDiv = document.getElementById('registerError');
+    if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+    } else {
+        alert(message);
+    }
+}
+
+// Helper function to reset modal state
+function resetAuthModal() {
+    document.getElementById('authForms').style.display = 'block';
+    document.getElementById('passkeySteps').style.display = 'none';
+    const passkeyStep = document.getElementById('passkeyStep');
+    if (passkeyStep) {
+        passkeyStep.classList.remove('active');
+        const spinner = passkeyStep.querySelector('.spinner');
+        const checkIcon = passkeyStep.querySelector('.check-icon');
+        if (spinner) spinner.style.display = 'block';
+        if (checkIcon) checkIcon.style.display = 'none';
+    }
+} 

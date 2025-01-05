@@ -49,3 +49,20 @@ type AcknowledgementRepository interface {
 	FindByStatus(ctx context.Context, status domain.AcknowledgementStatus) ([]*domain.Acknowledgement, error)
 	Update(ctx context.Context, acknowledgement *domain.Acknowledgement) error
 }
+
+// PasskeyRepository handles passkey credential storage operations
+type PasskeyRepository interface {
+	// Credential operations
+	CreateCredential(ctx context.Context, credential *domain.PasskeyCredential) error
+	GetCredentialByID(ctx context.Context, id primitive.ObjectID) (*domain.PasskeyCredential, error)
+	GetCredentialByCredentialID(ctx context.Context, credentialID []byte) (*domain.PasskeyCredential, error)
+	UpdateCredentialSignCount(ctx context.Context, id primitive.ObjectID, signCount uint32) error
+	DeleteCredential(ctx context.Context, id primitive.ObjectID) error
+
+	// User-Passkey relationship operations
+	AssignCredentialToUser(ctx context.Context, userPasskey *domain.UserPasskey) error
+	GetUserPasskeys(ctx context.Context, userID primitive.ObjectID) ([]*domain.UserPasskey, error)
+	GetActiveUserPasskeys(ctx context.Context, userID primitive.ObjectID) ([]*domain.UserPasskey, error)
+	DeactivateUserPasskey(ctx context.Context, id primitive.ObjectID) error
+	UpdateUserPasskeyLastUsed(ctx context.Context, id primitive.ObjectID, deviceInfo string) error
+}

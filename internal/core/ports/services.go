@@ -6,6 +6,8 @@ import (
 
 	"proofofpeacemaking/internal/core/domain"
 
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -63,7 +65,7 @@ type FeedService interface {
 type UserService interface {
 	Create(ctx context.Context, user *domain.User) error
 	Update(ctx context.Context, user *domain.User) error
-	GetUserByID(ctx context.Context, id primitive.ObjectID) (*domain.User, error)
+	GetUserByID(ctx context.Context, id string) (*domain.User, error)
 	GetUserByAddress(ctx context.Context, address string) (*domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetUserByUsername(ctx context.Context, username string) (*domain.User, error)
@@ -73,4 +75,20 @@ type UserService interface {
 
 type NewsletterService interface {
 	SendContactEmail(ctx context.Context, who string) error
+}
+
+// WebAuthnService handles WebAuthn operations
+type WebAuthnService interface {
+	BeginRegistration(ctx context.Context, userID primitive.ObjectID) (*protocol.CredentialCreation, webauthn.SessionData, error)
+	FinishRegistration(ctx context.Context, userID primitive.ObjectID, sessionData webauthn.SessionData, response *protocol.ParsedCredentialCreationData) error
+	BeginAuthentication(ctx context.Context, userID primitive.ObjectID) (*protocol.CredentialAssertion, webauthn.SessionData, error)
+	FinishAuthentication(ctx context.Context, userID primitive.ObjectID, sessionData webauthn.SessionData, response *protocol.ParsedCredentialAssertionData) error
+}
+
+// SessionService handles session management
+type SessionService interface {
+	Create(ctx context.Context, session *domain.Session) error
+	GetSession(ctx context.Context, token string) (*domain.Session, error)
+	Update(ctx context.Context, session *domain.Session) error
+	Delete(ctx context.Context, token string) error
 }

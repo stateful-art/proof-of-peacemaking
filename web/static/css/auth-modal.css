@@ -148,6 +148,27 @@
     height: 24px;
 }
 
+.btn-passkey {
+    background: #1a73e8;
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.btn-passkey:hover {
+    background: #1557b0;
+}
+
+.btn-passkey img {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+}
+
 /* Connection Steps */
 .connection-steps {
     padding: 2rem;

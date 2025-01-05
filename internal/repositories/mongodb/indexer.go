@@ -20,6 +20,7 @@ type IndexField struct {
 	Order    int // 1 for ascending, -1 for descending
 	Unique   bool
 	Compound bool // true if this field is part of a compound index
+	Sparse   bool // true if this index should ignore null values
 }
 
 func EnsureIndexes(ctx context.Context, db *mongo.Database, configs []IndexConfig) error {
@@ -41,7 +42,7 @@ func EnsureIndexes(ctx context.Context, db *mongo.Database, configs []IndexConfi
 
 		// Create compound indexes
 		for _, fields := range compoundFields {
-			if err := createIndex(ctx, indexView, fields, false, config.Collection); err != nil {
+			if err := createIndex(ctx, indexView, fields, false, false, config.Collection); err != nil {
 				return err
 			}
 		}
@@ -49,7 +50,7 @@ func EnsureIndexes(ctx context.Context, db *mongo.Database, configs []IndexConfi
 		// Create single field indexes
 		for _, field := range singleFields {
 			keys := bson.D{{Key: field.Name, Value: field.Order}}
-			if err := createIndex(ctx, indexView, keys, field.Unique, config.Collection); err != nil {
+			if err := createIndex(ctx, indexView, keys, field.Unique, field.Sparse, config.Collection); err != nil {
 				return err
 			}
 		}
@@ -58,7 +59,7 @@ func EnsureIndexes(ctx context.Context, db *mongo.Database, configs []IndexConfi
 	return nil
 }
 
-func createIndex(ctx context.Context, indexView mongo.IndexView, keys bson.D, unique bool, collection string) error {
+func createIndex(ctx context.Context, indexView mongo.IndexView, keys bson.D, unique bool, sparse bool, collection string) error {
 	// Check if index already exists
 	cursor, err := indexView.List(ctx)
 	if err != nil {
@@ -84,7 +85,7 @@ func createIndex(ctx context.Context, indexView mongo.IndexView, keys bson.D, un
 	// Create index
 	_, err = indexView.CreateOne(ctx, mongo.IndexModel{
 		Keys:    keys,
-		Options: options.Index().SetUnique(unique),
+		Options: options.Index().SetUnique(unique).SetSparse(sparse),
 	})
 	if err != nil {
 		return err
