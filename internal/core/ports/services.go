@@ -109,3 +109,8 @@ type StatisticsService interface {
 	UpdateStatisticsAfterAcknowledgement(ctx context.Context) error
 	UpdateStatisticsAfterCitizenshipChange(ctx context.Context) error
 }
+
+// CountryService handles country-related operations
+type CountryService interface {
+	SearchCountries(ctx context.Context, query string) ([]string, error)
+}

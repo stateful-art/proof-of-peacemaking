@@ -37,8 +37,9 @@ func NewHandlers(
 		ProofNFT:        NewProofNFTHandler(proofNFTService),
 		Feed:            NewFeedHandler(feedService, userService),
 		Statistics:      NewStatisticsHandler(statisticsService),
-		Account:         NewAccountHandler(userService, authService),
+		Account:         NewAccountHandler(userService, authService, statisticsService),
 		WebAuthn:        NewWebAuthnHandler(webAuthnService, sessionService, userService),
 		Newsletter:      NewNewsletterHandler(newsletterService),
+		Dashboard:       NewDashboardHandler(expressionService, acknowledgementService, userService, proofNFTService),
 	}
 }

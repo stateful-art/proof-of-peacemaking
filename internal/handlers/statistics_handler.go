@@ -112,3 +112,8 @@ func (h *StatisticsHandler) UpdateStatistics(c *fiber.Ctx) error {
 		"message": "Statistics updated successfully",
 	})
 }
+
+// GetStatisticsService returns the statistics service
+func (h *StatisticsHandler) GetStatisticsService() ports.StatisticsService {
+	return h.statsService
+}

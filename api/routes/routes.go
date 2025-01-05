@@ -3,6 +3,7 @@ package routes
 import (
 	"log"
 	"proofofpeacemaking/internal/core/domain"
+	"proofofpeacemaking/internal/core/services"
 	"proofofpeacemaking/internal/handlers"
 	"proofofpeacemaking/internal/middleware"
 	"strings"
@@ -76,10 +77,16 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	feedHandler := handlers.NewFeedHandler(h.Feed.GetFeedService(), h.User.GetUserService())
 
 	// Create account handler
-	accountHandler := handlers.NewAccountHandler(h.User.GetUserService(), h.Auth.GetAuthService())
+	accountHandler := handlers.NewAccountHandler(h.User.GetUserService(), h.Auth.GetAuthService(), h.Statistics.GetStatisticsService())
 
 	// Create newsletter handler
 	newsletterHandler := handlers.NewNewsletterHandler(h.Newsletter.GetNewsletterService())
+
+	// Create country handler with statistics service
+	countryHandler := handlers.NewCountryHandler(services.NewCountryService())
+
+	// Public routes
+	app.Get("/api/countries/search", countryHandler.SearchCountries)
 
 	// Home page (public)
 	app.Get("/", authMiddleware.Optional(), func(c *fiber.Ctx) error {

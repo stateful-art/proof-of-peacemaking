@@ -35,6 +35,63 @@
             width: 24px;
             height: 24px;
         }
+        .loader {
+            border: 8px solid;
+            border-color: rgba(255, 255, 255, 0.15) rgba(255, 255, 255, 0.25) rgba(255, 255, 255, 0.35) rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            display: none;
+            box-sizing: border-box;
+            animation: animloader 1s linear infinite;
+            width: 16px;
+            height: 16px;
+            position: absolute;
+            right: 10px;
+            top: 65%;
+            transform: translateY(-50%);
+        }
+
+        @keyframes animloader {
+            0% {
+                border-color: rgba(255, 255, 255, 0.15) rgba(255, 255, 255, 0.25) rgba(255, 255, 255, 0.35) rgba(255, 255, 255, 0.75);
+            }
+            33% {
+                border-color: rgba(255, 255, 255, 0.75) rgba(255, 255, 255, 0.15) rgba(255, 255, 255, 0.25) rgba(255, 255, 255, 0.35);
+            }
+            66% {
+                border-color: rgba(255, 255, 255, 0.35) rgba(255, 255, 255, 0.75) rgba(255, 255, 255, 0.15) rgba(255, 255, 255, 0.25);
+            }
+            100% {
+                border-color: rgba(255, 255, 255, 0.25) rgba(255, 255, 255, 0.35) rgba(255, 255, 255, 0.75) rgba(255, 255, 255, 0.15);
+            }
+        }
+
+        .citizenship-wrapper {
+            position: relative;
+        }
+
+        .country-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .country-suggestion {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .country-suggestion:hover {
+            background-color: var(--bg-hover);
+        }
     </style>
 </head>
 <body class="dark-mode">
@@ -57,14 +114,16 @@
                     <input type="email" id="email" name="email" value="{{.User.Email}}" required disabled>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group citizenship-wrapper">    
                     <label for="citizenship">Citizenship</label>
-                    <input type="text" id="citizenship" name="citizenship" value="{{.User.Citizenship}}" disabled>
+                    <input type="text" id="citizenship" name="citizenship" value="{{.User.Citizenship}}" placeholder="Where are you from?" >
+                    <span class="loader"></span>
+                    <div class="country-suggestions"></div>
                 </div>
 
                 <div class="form-group">
                     <label for="city">City</label>
-                    <input type="text" id="city" name="city" value="{{.User.City}}" disabled>
+                    <input type="text" id="city" name="city" value="{{.User.City}}">
                 </div>
 
                 {{if not .User.Address}}
@@ -87,8 +146,8 @@
                 {{end}}
 
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary" disabled>Save Changes</button>
-                    <button type="button" class="btn-secondary" id="cancelEditBtn" onclick="handleCancel()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                    <button type="button" class="btn-secondary" id="cancelEditBtn">Cancel</button>
                 </div>
             </form>
         </div>
@@ -114,6 +173,104 @@
         // Listen for wallet connection errors
         window.addEventListener('walletError', function(e) {
             showWalletError(e.detail.message);
+        });
+
+        const citizenshipInput = document.getElementById('citizenship');
+        const cityInput = document.getElementById('city');
+        const saveButton = document.querySelector('.btn-primary');
+        const cancelButton = document.getElementById('cancelEditBtn');
+        const loader = document.querySelector('.loader');
+        const suggestions = document.querySelector('.country-suggestions');
+        let typingTimer;
+
+        // Country search with debounce
+        citizenshipInput.addEventListener('input', () => {
+            const query = citizenshipInput.value.trim();
+            clearTimeout(typingTimer);
+
+            if (query.length >= 2) {
+                loader.style.display = 'inline-block';
+                typingTimer = setTimeout(() => searchCountries(query), 300);
+            } else {
+                suggestions.style.display = 'none';
+            }
+        });
+
+        async function searchCountries(query) {
+            try {
+                const response = await fetch(`/api/countries/search?search=${encodeURIComponent(query)}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch countries');
+                }
+                const countries = await response.json();
+                
+                suggestions.innerHTML = '';
+                if (countries && countries.length > 0) {
+                    countries.forEach(country => {
+                        const div = document.createElement('div');
+                        div.className = 'country-suggestion';
+                        div.textContent = country;
+                        div.addEventListener('click', () => {
+                            citizenshipInput.value = country;
+                            suggestions.style.display = 'none';
+                            // Enable save button when a country is selected
+                            saveButton.disabled = false;
+                        });
+                        suggestions.appendChild(div);
+                    });
+                    suggestions.style.display = 'block';
+                } else {
+                    suggestions.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error searching countries:', error);
+                suggestions.style.display = 'none';
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!suggestions.contains(e.target) && e.target !== citizenshipInput) {
+                suggestions.style.display = 'none';
+            }
+        });
+
+        // Save changes
+        const profileForm = document.getElementById('profileForm');
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                citizenship: citizenshipInput.value.trim(),
+                city: cityInput.value.trim()
+            };
+
+            try {
+                const response = await fetch('/api/users/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Failed to update profile');
+                }
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                alert('Failed to update profile');
+            }
+        });
+
+        // Cancel changes
+        cancelButton.addEventListener('click', () => {
+            window.location.reload();
         });
     </script>
     <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>

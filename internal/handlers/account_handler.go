@@ -10,14 +10,16 @@ import (
 )
 
 type AccountHandler struct {
-	userService ports.UserService
-	authService ports.AuthService
+	userService  ports.UserService
+	authService  ports.AuthService
+	statsService ports.StatisticsService
 }
 
-func NewAccountHandler(userService ports.UserService, authService ports.AuthService) *AccountHandler {
+func NewAccountHandler(userService ports.UserService, authService ports.AuthService, statsService ports.StatisticsService) *AccountHandler {
 	return &AccountHandler{
-		userService: userService,
-		authService: authService,
+		userService:  userService,
+		authService:  authService,
+		statsService: statsService,
 	}
 }
 
@@ -91,6 +93,9 @@ func (h *AccountHandler) UpdateProfile(c *fiber.Ctx) error {
 		})
 	}
 
+	// Store old citizenship to check if it changed
+	oldCitizenship := user.Citizenship
+
 	// Update user fields
 	user.Email = updateData.Email
 	user.Citizenship = updateData.Citizenship
@@ -98,20 +103,23 @@ func (h *AccountHandler) UpdateProfile(c *fiber.Ctx) error {
 
 	// Validate and update user
 	if err := h.userService.Update(c.Context(), user); err != nil {
-		if err.Error() == "email already exists" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"errors": map[string]string{
-					"email": "Email is already in use",
-				},
-			})
-		}
 		log.Printf("Error updating user: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to update profile",
+			"error": "Failed to update user",
 		})
 	}
 
-	return c.JSON(user)
+	// If citizenship changed, update statistics
+	if oldCitizenship != user.Citizenship {
+		if err := h.statsService.UpdateStatisticsAfterCitizenshipChange(c.Context()); err != nil {
+			log.Printf("Error updating statistics after citizenship change: %v", err)
+			// Don't return error here as the user update was successful
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Profile updated successfully",
+	})
 }
 
 func (h *AccountHandler) GetWalletNonce(c *fiber.Ctx) error {
