@@ -648,15 +648,20 @@ async function registerWithPasskey() {
         }
         
         const options = await response.json();
+        console.log('Registration options received:', options);
         
         // Convert base64 strings to ArrayBuffer
         options.publicKey.challenge = base64ToArrayBuffer(options.publicKey.challenge);
         options.publicKey.user.id = base64ToArrayBuffer(options.publicKey.user.id);
         
+        console.log('Creating credentials with options:', options);
+        
         // Create credentials
         const credential = await navigator.credentials.create({
             publicKey: options.publicKey
         });
+
+        console.log('Credential created:', credential);
         
         // Convert credential for sending to server
         const credentialResponse = {
@@ -670,6 +675,8 @@ async function registerWithPasskey() {
             email,
             username
         };
+        
+        console.log('Sending credential to server:', credentialResponse);
         
         // Send credential to server
         const verifyResponse = await fetch('/auth/passkey/register/finish', {
@@ -687,17 +694,23 @@ async function registerWithPasskey() {
         }
         
         const result = await verifyResponse.json();
+        console.log('Registration result:', result);
         
         // Show success and update UI
         document.querySelector('#passkeyStep .spinner').style.display = 'none';
         document.querySelector('#passkeyStep .check-icon').style.display = 'flex';
         document.querySelector('#passkeyStep .step-content p').textContent = 'Passkey registered successfully!';
         
-        // Handle successful registration
-        handleSuccessfulAuth(result.token);
+        // Wait a moment before reloading to show the success message
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
         
     } catch (error) {
-        throw new Error('Passkey registration failed: ' + error.message);
+        console.error('Passkey registration error:', error);
+        showError('Passkey registration failed: ' + error.message);
+        resetAuthModal();
+        throw error;
     }
 }
 
@@ -823,4 +836,13 @@ function resetAuthModal() {
         if (spinner) spinner.style.display = 'block';
         if (checkIcon) checkIcon.style.display = 'none';
     }
+}
+
+// Helper function to handle successful authentication
+function handleSuccessfulAuth(token) {
+    console.log('Authentication successful, token received:', token);
+    // Wait a moment to show success message
+    setTimeout(() => {
+        window.location.reload();
+    }, 1500);
 } 
