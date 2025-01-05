@@ -255,3 +255,48 @@ func (r *UserRepository) Delete(ctx context.Context, id primitive.ObjectID) erro
 	}
 	return nil
 }
+
+// GetCitizenshipDistribution returns a map of citizenship counts
+func (r *UserRepository) GetCitizenshipDistribution(ctx context.Context) (map[string]int, error) {
+	pipeline := []bson.M{
+		{
+			"$group": bson.M{
+				"_id":   "$citizenship",
+				"count": bson.M{"$sum": 1},
+			},
+		},
+	}
+
+	cursor, err := r.db.Collection("users").Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []struct {
+		ID    string `bson:"_id"`
+		Count int    `bson:"count"`
+	}
+
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, err
+	}
+
+	distribution := make(map[string]int)
+	for _, result := range results {
+		if result.ID != "" { // Skip empty citizenship
+			distribution[result.ID] = result.Count
+		}
+	}
+
+	return distribution, nil
+}
+
+// GetTotalCount returns the total number of users in the system
+func (r *UserRepository) GetTotalCount(ctx context.Context) (int, error) {
+	count, err := r.db.Collection("users").CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return 0, fmt.Errorf("failed to get total user count: %w", err)
+	}
+	return int(count), nil
+}

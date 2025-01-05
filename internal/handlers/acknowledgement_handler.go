@@ -16,13 +16,20 @@ type AcknowledgementHandler struct {
 	acknowledgementService ports.AcknowledgementService
 	userService            ports.UserService
 	expressionService      ports.ExpressionService
+	statsService           ports.StatisticsService
 }
 
-func NewAcknowledgementHandler(acknowledgementService ports.AcknowledgementService, userService ports.UserService, expressionService ports.ExpressionService) *AcknowledgementHandler {
+func NewAcknowledgementHandler(
+	acknowledgementService ports.AcknowledgementService,
+	userService ports.UserService,
+	expressionService ports.ExpressionService,
+	statsService ports.StatisticsService,
+) *AcknowledgementHandler {
 	return &AcknowledgementHandler{
 		acknowledgementService: acknowledgementService,
 		userService:            userService,
 		expressionService:      expressionService,
+		statsService:           statsService,
 	}
 }
 
@@ -151,6 +158,13 @@ func (h *AcknowledgementHandler) Create(c *fiber.Ctx) error {
 	}
 
 	log.Printf("[ACK] Successfully created acknowledgement: %s", acknowledgement.ID.Hex())
+
+	// After creating/updating acknowledgement, update statistics
+	if err := h.statsService.UpdateStatisticsAfterAcknowledgement(c.Context()); err != nil {
+		log.Printf("[ACK] Warning: Failed to update statistics: %v", err)
+		// Don't return error here, as the acknowledgement was created successfully
+	}
+
 	return c.JSON(acknowledgement)
 }
 

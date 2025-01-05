@@ -18,6 +18,8 @@ type UserRepository interface {
 	UpdateNonce(ctx context.Context, id primitive.ObjectID, nonce int) error
 	ConnectWallet(ctx context.Context, userID primitive.ObjectID, address string) error
 	Delete(ctx context.Context, id primitive.ObjectID) error
+	GetTotalCount(ctx context.Context) (int, error)
+	GetCitizenshipDistribution(ctx context.Context) (map[string]int, error)
 }
 
 type NotificationRepository interface {
@@ -41,6 +43,12 @@ type ExpressionRepository interface {
 	FindAll(ctx context.Context) ([]*domain.Expression, error)
 	FindByCreatorID(ctx context.Context, creatorID string) ([]*domain.Expression, error)
 	FindByIDs(ctx context.Context, ids []string) ([]*domain.Expression, error)
+	GetByUserID(ctx context.Context, userID string) ([]*domain.Expression, error)
+	Update(ctx context.Context, expression *domain.Expression) error
+	Delete(ctx context.Context, id string) error
+	GetTotalCount(ctx context.Context) (int, error)
+	GetTotalAcknowledgements(ctx context.Context) (int, error)
+	GetMediaTypeDistribution(ctx context.Context) (map[string]int, error)
 }
 
 type AcknowledgementRepository interface {
@@ -66,4 +74,16 @@ type PasskeyRepository interface {
 	GetActiveUserPasskeys(ctx context.Context, userID primitive.ObjectID) ([]*domain.UserPasskey, error)
 	DeactivateUserPasskey(ctx context.Context, id primitive.ObjectID) error
 	UpdateUserPasskeyLastUsed(ctx context.Context, id primitive.ObjectID, deviceInfo string) error
+}
+
+// StatisticsRepository handles statistics data storage
+type StatisticsRepository interface {
+	// GetLatest returns the most recent statistics record
+	GetLatest(ctx context.Context) (*domain.Statistics, error)
+
+	// Create stores a new statistics record
+	Create(ctx context.Context, stats *domain.Statistics) error
+
+	// GetCountryList returns the list of available countries
+	GetCountryList(ctx context.Context) ([]domain.CountryInfo, error)
 }

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+    <title>{{.Title}} - Proof of Peacemaking</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <link rel="stylesheet" href="/static/css/statistics.css">
+    <link rel="stylesheet" href="/static/css/footer.css">
+</head>
+<body>
+    {{ template "navbar" . }}
+
+    <main class="container">
+        <h1>Platform Statistics</h1>
+        
+        {{if .Statistics}}
+        <div class="stats-grid">
+            <div class="stats-card">
+                <h2>Community</h2>
+                <div class="stat-item">
+                    <span class="stat-label">Total Users</span>
+                    <span class="stat-value">{{.Statistics.TotalUsers}}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Expressions</span>
+                    <span class="stat-value">{{.Statistics.TotalExpressions}}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Acknowledgements</span>
+                    <span class="stat-value">{{.Statistics.TotalAcknowledgements}}</span>
+                </div>
+            </div>
+
+            <div class="stats-card">
+                <h2>Media Distribution</h2>
+                {{range $type, $count := .Statistics.MediaStats}}
+                <div class="stat-item">
+                    <span class="stat-label">{{$type}}</span>
+                    <span class="stat-value">{{$count}}</span>
+                </div>
+                {{end}}
+            </div>
+
+            <div class="stats-card">
+                <h2>Global Reach</h2>
+                {{range $code, $count := .Statistics.CitizenshipStats}}
+                <div class="stat-item">
+                    <span class="stat-label">{{$code}}</span>
+                    <span class="stat-value">{{$count}}</span>
+                </div>
+                {{end}}
+            </div>
+        </div>
+        {{else}}
+        <p class="no-stats">Statistics are currently being compiled...</p>
+        {{end}}
+    </main>
+
+    {{ template "footer" . }}
+</body>
+</html>

@@ -13,30 +13,32 @@ type Handlers struct {
 	Notification    *NotificationHandler
 	Newsletter      *NewsletterHandler
 	WebAuthn        *WebAuthnHandler
+	Statistics      *StatisticsHandler
+	Account         *AccountHandler
 }
 
 func NewHandlers(
-	notificationService ports.NotificationService,
+	userService ports.UserService,
 	authService ports.AuthService,
 	expressionService ports.ExpressionService,
 	acknowledgementService ports.AcknowledgementService,
 	proofNFTService ports.ProofNFTService,
 	feedService ports.FeedService,
-	userService ports.UserService,
-	newsletterService ports.NewsletterService,
+	statisticsService ports.StatisticsService,
 	webAuthnService ports.WebAuthnService,
 	sessionService ports.SessionService,
+	newsletterService ports.NewsletterService,
 ) *Handlers {
 	return &Handlers{
 		Auth:            NewAuthHandler(authService),
-		User:            NewUserHandler(userService),
-		Expression:      NewExpressionHandler(expressionService, userService),
-		Acknowledgement: NewAcknowledgementHandler(acknowledgementService, userService, expressionService),
+		User:            NewUserHandler(userService, statisticsService),
+		Expression:      NewExpressionHandler(expressionService, userService, statisticsService),
+		Acknowledgement: NewAcknowledgementHandler(acknowledgementService, userService, expressionService, statisticsService),
 		ProofNFT:        NewProofNFTHandler(proofNFTService),
 		Feed:            NewFeedHandler(feedService, userService),
-		Dashboard:       NewDashboardHandler(expressionService, acknowledgementService, userService, proofNFTService),
-		Notification:    NewNotificationHandler(notificationService),
-		Newsletter:      NewNewsletterHandler(newsletterService),
+		Statistics:      NewStatisticsHandler(statisticsService),
+		Account:         NewAccountHandler(userService, authService),
 		WebAuthn:        NewWebAuthnHandler(webAuthnService, sessionService, userService),
+		Newsletter:      NewNewsletterHandler(newsletterService),
 	}
 }

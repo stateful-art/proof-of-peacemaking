@@ -93,3 +93,19 @@ type SessionService interface {
 	Update(ctx context.Context, session *domain.Session) error
 	Delete(ctx context.Context, token string) error
 }
+
+// StatisticsService handles system statistics
+type StatisticsService interface {
+	// GetLatestStats returns the most recent statistics
+	GetLatestStats(ctx context.Context) (*domain.Statistics, error)
+
+	// UpdateStats creates a new statistics record
+	UpdateStats(ctx context.Context) error
+
+	// GetCountryList returns available countries for citizenship
+	GetCountryList(ctx context.Context) ([]domain.CountryInfo, error)
+
+	UpdateStatisticsAfterExpression(ctx context.Context) error
+	UpdateStatisticsAfterAcknowledgement(ctx context.Context) error
+	UpdateStatisticsAfterCitizenshipChange(ctx context.Context) error
+}

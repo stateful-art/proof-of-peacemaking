@@ -25,12 +25,14 @@ func getKeys[K comparable, V any](m map[K]V) []K {
 type ExpressionHandler struct {
 	expressionService ports.ExpressionService
 	userService       ports.UserService
+	statsService      ports.StatisticsService
 }
 
-func NewExpressionHandler(expressionService ports.ExpressionService, userService ports.UserService) *ExpressionHandler {
+func NewExpressionHandler(expressionService ports.ExpressionService, userService ports.UserService, statsService ports.StatisticsService) *ExpressionHandler {
 	return &ExpressionHandler{
 		expressionService: expressionService,
 		userService:       userService,
+		statsService:      statsService,
 	}
 }
 
@@ -175,6 +177,12 @@ func (h *ExpressionHandler) Create(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create expression",
 		})
+	}
+
+	// After creating the expression, update statistics
+	if err := h.statsService.UpdateStatisticsAfterExpression(c.Context()); err != nil {
+		log.Printf("[EXPRESSION] Warning: Failed to update statistics: %v", err)
+		// Don't return error here, as the expression was created successfully
 	}
 
 	return c.JSON(expression)

@@ -11,6 +11,7 @@ import (
 
 	"proofofpeacemaking/api/routes"
 	"proofofpeacemaking/internal/core/config"
+	"proofofpeacemaking/internal/core/domain"
 	"proofofpeacemaking/internal/core/ports"
 	"proofofpeacemaking/internal/core/services"
 	"proofofpeacemaking/internal/core/storage"
@@ -24,34 +25,32 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl, expressionsR2Storage *storage.R2Storage) (
-	ports.NotificationService,
+func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl, r2Storage *storage.R2Storage) (
+	ports.UserService,
 	ports.AuthService,
 	ports.ExpressionService,
 	ports.AcknowledgementService,
 	ports.ProofNFTService,
 	ports.FeedService,
-	ports.UserService,
 	ports.NewsletterService,
 	ports.WebAuthnService,
 	ports.SessionService,
+	ports.StatisticsService,
 ) {
 	// Initialize repositories
 	userRepo := mongodb.NewUserRepository(db)
-	sessionRepo := mongodb.NewSessionRepository(db)
 	expressionRepo := mongodb.NewExpressionRepository(db)
 	acknowledgementRepo := mongodb.NewAcknowledgementRepository(db)
-	notificationRepo := mongodb.NewNotificationRepository(db)
 	proofNFTRepo := mongodb.NewProofNFTRepository(db)
+	sessionRepo := mongodb.NewSessionRepository(db)
+	statsRepo := mongodb.NewStatisticsRepository(db)
 	passkeyRepo := mongodb.NewPasskeyRepository(db)
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
-	sessionService := services.NewSessionService(sessionRepo)
 	authService := services.NewAuthService(userService, sessionRepo)
-	expressionService := services.NewExpressionService(expressionRepo, acknowledgementRepo, expressionsR2Storage)
+	expressionService := services.NewExpressionService(expressionRepo, acknowledgementRepo, r2Storage)
 	acknowledgementService := services.NewAcknowledgementService(acknowledgementRepo)
-	notificationService := services.NewNotificationService(notificationRepo, userRepo)
 	proofNFTService := services.NewProofNFTService(userRepo, proofNFTRepo)
 	feedService := services.NewFeedService(expressionService, userService, acknowledgementService)
 	newsletterService := services.NewNewsletterService(mailgunClient)
@@ -59,8 +58,10 @@ func initServices(db *mongo.Database, mailgunClient *mailgun.MailgunImpl, expres
 	if err != nil {
 		log.Fatalf("Failed to initialize WebAuthn service: %v", err)
 	}
+	sessionService := services.NewSessionService(sessionRepo)
+	statsService := services.NewStatisticsService(statsRepo, userRepo, expressionRepo)
 
-	return notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService, newsletterService, webAuthnService, sessionService
+	return userService, authService, expressionService, acknowledgementService, proofNFTService, feedService, newsletterService, webAuthnService, sessionService, statsService
 }
 
 func getProjectRoot() string {
@@ -80,26 +81,26 @@ func setupHandlers(app *fiber.App) *handlers.Handlers {
 	}
 
 	// Initialize services
-	notificationService, authService, expressionService, acknowledgementService, proofNFTService, feedService, userService, newsletterService, webAuthnService, sessionService := initServices(db, mailgunClient, expressionsR2Storage)
+	userService, authService, expressionService, acknowledgementService, proofNFTService, feedService, newsletterService, webAuthnService, sessionService, statsService := initServices(db, mailgunClient, expressionsR2Storage)
 
-	// Create handlers
-	h := handlers.NewHandlers(
-		notificationService,
+	// Initialize handlers
+	handlers := handlers.NewHandlers(
+		userService,
 		authService,
 		expressionService,
 		acknowledgementService,
 		proofNFTService,
 		feedService,
-		userService,
-		newsletterService,
+		statsService,
 		webAuthnService,
 		sessionService,
+		newsletterService,
 	)
 
 	// Setup routes with user service for feed handler
-	routes.SetupRoutes(app, h)
+	routes.SetupRoutes(app, handlers)
 
-	return h
+	return handlers
 }
 
 func initTemplateEngine() *html.Engine {
@@ -135,6 +136,16 @@ func initExpressionsR2Storage() (*storage.R2Storage, error) {
 }
 
 func main() {
+	// Load environment variables
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Error loading .env file: %v", err)
+	}
+
+	// Load country data
+	if err := domain.LoadCountries("web/static/data/countries.json"); err != nil {
+		log.Fatalf("Failed to load country data: %v", err)
+	}
+
 	// Get project root directory
 	projectRoot := getProjectRoot()
 

@@ -141,6 +141,13 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	app.Post("/auth/login-email", h.Auth.LoginWithEmail)
 	app.Post("/auth/logout", h.Auth.Logout)
 
+	// Statistics routes
+	app.Get("/statistics", h.Statistics.ServeStatisticsPage)
+	stats := app.Group("/statistics")
+	stats.Get("/", h.Statistics.GetStatistics)
+	stats.Get("/countries", h.Statistics.GetCountryList)
+	stats.Post("/update", h.Statistics.UpdateStatistics)
+
 	// WebAuthn routes
 	webauthn := app.Group("/auth/passkey")
 	webauthn.Post("/register/begin", h.WebAuthn.BeginRegistration)
