@@ -9,7 +9,7 @@ async function openAuthModal() {
     
     // First check if user is already connected
     try {
-        const response = await fetch('/auth/session');
+        const response = await fetch('/api/auth/session');
         const data = await response.json();
         
         if (data.authenticated) {
@@ -716,19 +716,29 @@ async function registerWithPasskey() {
 
 async function loginWithPasskey() {
     try {
-        // Get authentication options from server
+        // Get user email first
+        const email = document.getElementById('loginEmail').value;
+        if (!email) {
+            throw new Error('Please enter your email to authenticate with passkey');
+        }
+        
+        // Get authentication options from server with email
         const response = await fetch('/auth/passkey/auth/begin', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            }
+            },
+            body: JSON.stringify({ email }),
+            credentials: 'include'
         });
         
         if (!response.ok) {
-            throw new Error('Failed to get authentication options');
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to get authentication options');
         }
         
         const options = await response.json();
+        console.log('Authentication options received:', options);
         
         // Convert base64 strings to ArrayBuffer
         options.publicKey.challenge = base64ToArrayBuffer(options.publicKey.challenge);
@@ -739,10 +749,14 @@ async function loginWithPasskey() {
             }));
         }
         
+        console.log('Getting credentials with options:', options);
+        
         // Get credentials
         const credential = await navigator.credentials.get({
             publicKey: options.publicKey
         });
+
+        console.log('Credential received:', credential);
         
         // Convert credential for sending to server
         const credentialResponse = {
@@ -754,8 +768,11 @@ async function loginWithPasskey() {
                 signature: arrayBufferToBase64(credential.response.signature),
                 userHandle: credential.response.userHandle ? arrayBufferToBase64(credential.response.userHandle) : null
             },
-            type: credential.type
+            type: credential.type,
+            email // Include email for user identification
         };
+
+        console.log('Sending verification to server:', credentialResponse);
         
         // Send credential to server
         const verifyResponse = await fetch('/auth/passkey/auth/finish', {
@@ -763,25 +780,33 @@ async function loginWithPasskey() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(credentialResponse)
+            body: JSON.stringify(credentialResponse),
+            credentials: 'include'
         });
         
         if (!verifyResponse.ok) {
-            throw new Error('Failed to verify authentication');
+            const data = await verifyResponse.json();
+            throw new Error(data.error || 'Failed to verify authentication');
         }
         
         const result = await verifyResponse.json();
+        console.log('Authentication result:', result);
         
         // Show success and update UI
         document.querySelector('#passkeyStep .spinner').style.display = 'none';
         document.querySelector('#passkeyStep .check-icon').style.display = 'flex';
         document.querySelector('#passkeyStep .step-content p').textContent = 'Successfully authenticated!';
         
-        // Handle successful login
-        handleSuccessfulAuth(result.token);
+        // Wait a moment before reloading to show the success message
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
         
     } catch (error) {
-        throw new Error('Passkey authentication failed: ' + error.message);
+        console.error('Passkey authentication error:', error);
+        showError('Passkey authentication failed: ' + error.message);
+        resetAuthModal();
+        throw error;
     }
 }
 

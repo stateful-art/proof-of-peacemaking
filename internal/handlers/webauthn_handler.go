@@ -235,16 +235,38 @@ func (h *WebAuthnHandler) FinishRegistration(c *fiber.Ctx) error {
 
 // BeginAuthentication initiates the passkey authentication process
 func (h *WebAuthnHandler) BeginAuthentication(c *fiber.Ctx) error {
-	// Get user ID from request
-	userID, err := primitive.ObjectIDFromHex(c.Query("user_id"))
-	if err != nil {
+	// Parse request body to get email
+	var req struct {
+		Email string `json:"email"`
+	}
+
+	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid user ID",
+			"error": "invalid request body",
+		})
+	}
+
+	if req.Email == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "email is required",
+		})
+	}
+
+	// Get user by email
+	user, err := h.userService.GetUserByEmail(c.Context(), req.Email)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to get user",
+		})
+	}
+	if user == nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "user not found",
 		})
 	}
 
 	// Begin authentication
-	options, sessionData, err := h.webAuthnService.BeginAuthentication(c.Context(), userID)
+	options, sessionData, err := h.webAuthnService.BeginAuthentication(c.Context(), user.ID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -260,7 +282,7 @@ func (h *WebAuthnHandler) BeginAuthentication(c *fiber.Ctx) error {
 	}
 
 	session := &domain.Session{
-		UserID:       userID.Hex(),
+		UserID:       user.ID.Hex(),
 		WebAuthnData: string(sessionDataJSON),
 		CreatedAt:    time.Now(),
 		ExpiresAt:    time.Now().Add(5 * time.Minute), // Short expiry for authentication
