@@ -27,6 +27,15 @@
                 <div class="divider">
                     <span>or</span>
                 </div>
+
+                <button type="button" class="btn btn-passkey" onclick="startPasskeyAuth('login')">
+                    <img src="/static/img/passkey.jpg" alt="Passkey" width="24" height="24">
+                    Continue with Passkey
+                </button>
+                
+                <div class="divider">
+                    <span>or</span>
+                </div>
                 
                 <button type="button" class="btn btn-metamask" onclick="startWalletConnection()">
                     <img src="/static/img/metamask.svg" alt="MetaMask">
@@ -52,6 +61,15 @@
                     <div id="registerError" class="error-message" style="display: none; color: #ff4444; margin: 16px 0; text-align: center;"></div>
                     <button type="submit" class="btn">Register</button>
                 </form>
+                
+                <div class="divider">
+                    <span>or</span>
+                </div>
+
+                <button type="button" class="btn btn-passkey" onclick="startPasskeyAuth('register')">
+                    <img src="/static/img/passkey.jpg" alt="Passkey" width="24" height="24">
+                    Register with Passkey
+                </button>
                 
                 <div class="divider">
                     <span>or</span>
@@ -86,6 +104,23 @@
                     <div class="step-content">
                         <h3>Sign Message</h3>
                         <p>Please sign the verification message...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Passkey Steps -->
+        <div id="passkeySteps" class="auth-content" style="display: none;">
+            <h2>Passkey Authentication</h2>
+            <div class="connection-steps">
+                <div class="step" id="passkeyStep">
+                    <div class="step-icon">
+                        <div class="spinner"></div>
+                        <div class="check-icon" style="display: none;">✓</div>
+                    </div>
+                    <div class="step-content">
+                        <h3>Verify with Passkey</h3>
+                        <p>Please follow your device's prompts to continue...</p>
                     </div>
                 </div>
             </div>

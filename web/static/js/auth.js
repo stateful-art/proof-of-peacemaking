@@ -1,5 +1,7 @@
-// Make openAuthModal available globally
+// Make functions available globally
 window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.startPasskeyAuth = startPasskeyAuth;
 
 // Auth Modal Control
 async function openAuthModal() {
@@ -63,6 +65,13 @@ function switchAuthMode(mode) {
     const registerForm = document.getElementById('registerForm');
     const loginTab = document.querySelector('[onclick="switchAuthMode(\'login\')"]');
     const registerTab = document.querySelector('[onclick="switchAuthMode(\'register\')"]');
+    const errorDiv = document.getElementById('registerError');
+
+    // Clear any existing error messages
+    if (errorDiv) {
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+    }
 
     if (mode === 'login') {
         loginForm.classList.add('active');
@@ -84,11 +93,23 @@ async function handleEmailLogin(event) {
     
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
+    const errorDiv = document.getElementById('registerError');
+
+    // Clear any previous error messages
+    if (errorDiv) {
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+    }
 
     console.log('Login form data:', { email }); // Don't log password
 
     if (!email || !password) {
-        alert('Please fill in all fields');
+        if (errorDiv) {
+            errorDiv.textContent = 'Please fill in all fields';
+            errorDiv.style.display = 'block';
+        } else {
+            alert('Please fill in all fields');
+        }
         return;
     }
 
@@ -107,15 +128,29 @@ async function handleEmailLogin(event) {
         
         if (response.ok) {
             console.log('Login successful, reloading page...');
+            // Hide any error messages before reloading
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+            }
             window.location.reload();
         } else {
             const data = await response.json();
             console.error('Login failed:', data.error);
-            alert(data.error || 'Login failed');
+            if (errorDiv) {
+                errorDiv.textContent = data.error || 'Login failed';
+                errorDiv.style.display = 'block';
+            } else {
+                alert(data.error || 'Login failed');
+            }
         }
     } catch (error) {
         console.error('Login error:', error);
-        alert('Login failed. Please try again.');
+        if (errorDiv) {
+            errorDiv.textContent = 'Login failed. Please try again.';
+            errorDiv.style.display = 'block';
+        } else {
+            alert('Login failed. Please try again.');
+        }
     }
 }
 
@@ -592,4 +627,307 @@ document.addEventListener('DOMContentLoaded', () => {
             await startWalletConnection();
         });
     }
-}); 
+});
+
+// Passkey Authentication Functions
+async function startPasskeyAuth(mode) {
+    // Hide auth forms and show passkey steps
+    document.getElementById('authForms').style.display = 'none';
+    document.getElementById('passkeySteps').style.display = 'block';
+    
+    const passkeyStep = document.getElementById('passkeyStep');
+    passkeyStep.classList.add('active');
+    
+    try {
+        if (mode === 'register') {
+            await registerWithPasskey();
+        } else {
+            await loginWithPasskey();
+        }
+    } catch (error) {
+        console.error('Passkey authentication error:', error);
+        showError('Passkey authentication failed. Please try again.');
+        resetAuthModal();
+    }
+}
+
+async function registerWithPasskey() {
+    try {
+        // Get user details first
+        const email = document.getElementById('registerEmail').value;
+        const username = document.getElementById('registerUsername').value;
+        const errorDiv = document.getElementById('registerError');
+
+        // Clear any previous errors
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+        }
+
+        // Validate form fields
+        if (!email || !username) {
+            const errorMessage = 'Please fill in your email and username before registering with passkey';
+            if (errorDiv) {
+                errorDiv.textContent = errorMessage;
+                errorDiv.style.display = 'block';
+            } else {
+                alert(errorMessage);
+            }
+            // Reset modal state without throwing error
+            resetAuthModal();
+            return;
+        }
+
+        // Start passkey registration with user details
+        const response = await fetch('/auth/passkey/register/begin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email,
+                username
+            }),
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to get registration options');
+        }
+        
+        const options = await response.json();
+        console.log('Registration options received:', options);
+        
+        // Show passkey UI
+        document.getElementById('authForms').style.display = 'none';
+        document.getElementById('passkeySteps').style.display = 'block';
+        const passkeyStep = document.getElementById('passkeyStep');
+        passkeyStep.classList.add('active');
+        
+        // Convert base64 strings to ArrayBuffer
+        options.publicKey.challenge = base64ToArrayBuffer(options.publicKey.challenge);
+        options.publicKey.user.id = base64ToArrayBuffer(options.publicKey.user.id);
+        
+        console.log('Creating credentials with options:', options);
+        
+        // Create credentials
+        const credential = await navigator.credentials.create({
+            publicKey: options.publicKey
+        });
+
+        console.log('Credential created:', credential);
+        
+        // Convert credential for sending to server
+        const credentialResponse = {
+            id: credential.id,
+            rawId: arrayBufferToBase64(credential.rawId),
+            response: {
+                attestationObject: arrayBufferToBase64(credential.response.attestationObject),
+                clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON)
+            },
+            type: credential.type,
+            email,
+            username
+        };
+        
+        console.log('Sending credential to server:', credentialResponse);
+        
+        // Send credential to server
+        const verifyResponse = await fetch('/auth/passkey/register/finish', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(credentialResponse),
+            credentials: 'include'
+        });
+        
+        if (!verifyResponse.ok) {
+            const data = await verifyResponse.json();
+            throw new Error(data.error || 'Failed to verify registration');
+        }
+        
+        const result = await verifyResponse.json();
+        console.log('Registration result:', result);
+        
+        // Show success and update UI
+        document.querySelector('#passkeyStep .spinner').style.display = 'none';
+        document.querySelector('#passkeyStep .check-icon').style.display = 'flex';
+        document.querySelector('#passkeyStep .step-content p').textContent = 'Passkey registered successfully!';
+        
+        // Wait a moment before reloading to show the success message
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Passkey registration error:', error);
+        const errorDiv = document.getElementById('registerError');
+        if (errorDiv) {
+            errorDiv.textContent = 'Passkey registration failed: ' + error.message;
+            errorDiv.style.display = 'block';
+        } else {
+            alert('Passkey registration failed: ' + error.message);
+        }
+        resetAuthModal();
+    }
+}
+
+async function loginWithPasskey() {
+    try {
+        // Get user email first
+        const email = document.getElementById('loginEmail').value;
+        if (!email) {
+            throw new Error('Please enter your email to authenticate with passkey');
+        }
+        
+        // Get authentication options from server with email
+        const response = await fetch('/auth/passkey/auth/begin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email }),
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to get authentication options');
+        }
+        
+        const options = await response.json();
+        console.log('Authentication options received:', options);
+        
+        // Convert base64 strings to ArrayBuffer
+        options.publicKey.challenge = base64ToArrayBuffer(options.publicKey.challenge);
+        if (options.publicKey.allowCredentials) {
+            options.publicKey.allowCredentials = options.publicKey.allowCredentials.map(credential => ({
+                ...credential,
+                id: base64ToArrayBuffer(credential.id)
+            }));
+        }
+        
+        console.log('Getting credentials with options:', options);
+        
+        // Get credentials
+        const credential = await navigator.credentials.get({
+            publicKey: options.publicKey
+        });
+
+        console.log('Credential received:', credential);
+        
+        // Convert credential for sending to server
+        const credentialResponse = {
+            id: credential.id,
+            rawId: arrayBufferToBase64(credential.rawId),
+            response: {
+                authenticatorData: arrayBufferToBase64(credential.response.authenticatorData),
+                clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON),
+                signature: arrayBufferToBase64(credential.response.signature),
+                userHandle: credential.response.userHandle ? arrayBufferToBase64(credential.response.userHandle) : null
+            },
+            type: credential.type,
+            email // Include email for user identification
+        };
+
+        console.log('Sending verification to server:', credentialResponse);
+        
+        // Send credential to server
+        const verifyResponse = await fetch('/auth/passkey/auth/finish', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(credentialResponse),
+            credentials: 'include'
+        });
+        
+        if (!verifyResponse.ok) {
+            const data = await verifyResponse.json();
+            throw new Error(data.error || 'Failed to verify authentication');
+        }
+        
+        const result = await verifyResponse.json();
+        console.log('Authentication result:', result);
+        
+        // Show success and update UI
+        document.querySelector('#passkeyStep .spinner').style.display = 'none';
+        document.querySelector('#passkeyStep .check-icon').style.display = 'flex';
+        document.querySelector('#passkeyStep .step-content p').textContent = 'Successfully authenticated!';
+        
+        // Wait a moment before reloading to show the success message
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Passkey authentication error:', error);
+        showError('Passkey authentication failed: ' + error.message);
+        resetAuthModal();
+        throw error;
+    }
+}
+
+// Utility functions for ArrayBuffer <-> Base64 conversion
+function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+}
+
+function base64ToArrayBuffer(base64) {
+    // Add padding if needed
+    base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) {
+        base64 += '=';
+    }
+    
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+// Helper function to show error messages
+function showError(message) {
+    const errorDiv = document.getElementById('registerError');
+    if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+    } else {
+        alert(message);
+    }
+}
+
+// Helper function to reset modal state
+function resetAuthModal() {
+    document.getElementById('authForms').style.display = 'block';
+    document.getElementById('passkeySteps').style.display = 'none';
+    const passkeyStep = document.getElementById('passkeyStep');
+    if (passkeyStep) {
+        passkeyStep.classList.remove('active');
+        const spinner = passkeyStep.querySelector('.spinner');
+        const checkIcon = passkeyStep.querySelector('.check-icon');
+        if (spinner) spinner.style.display = 'block';
+        if (checkIcon) checkIcon.style.display = 'none';
+    }
+}
+
+// Helper function to handle successful authentication
+function handleSuccessfulAuth(token) {
+    console.log('Authentication successful, token received:', token);
+    // Wait a moment to show success message
+    setTimeout(() => {
+        window.location.reload();
+    }, 1500);
+} 

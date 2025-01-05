@@ -244,3 +244,14 @@ func (r *UserRepository) UpdateNonce(ctx context.Context, id primitive.ObjectID,
 
 	return nil
 }
+
+func (r *UserRepository) Delete(ctx context.Context, id primitive.ObjectID) error {
+	result, err := r.db.Collection("users").DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+	if result.DeletedCount == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
+}

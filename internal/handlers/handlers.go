@@ -12,6 +12,7 @@ type Handlers struct {
 	Dashboard       *DashboardHandler
 	Notification    *NotificationHandler
 	Newsletter      *NewsletterHandler
+	WebAuthn        *WebAuthnHandler
 }
 
 func NewHandlers(
@@ -23,6 +24,8 @@ func NewHandlers(
 	feedService ports.FeedService,
 	userService ports.UserService,
 	newsletterService ports.NewsletterService,
+	webAuthnService ports.WebAuthnService,
+	sessionService ports.SessionService,
 ) *Handlers {
 	return &Handlers{
 		Auth:            NewAuthHandler(authService),
@@ -34,5 +37,6 @@ func NewHandlers(
 		Dashboard:       NewDashboardHandler(expressionService, acknowledgementService, userService, proofNFTService),
 		Notification:    NewNotificationHandler(notificationService),
 		Newsletter:      NewNewsletterHandler(newsletterService),
+		WebAuthn:        NewWebAuthnHandler(webAuthnService, sessionService, userService),
 	}
 }

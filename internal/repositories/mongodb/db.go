@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -31,12 +32,29 @@ func Connect() *mongo.Database {
 	log.Printf("[DB] Successfully connected to MongoDB")
 	db := client.Database("proof-of-peacemaking")
 
-	// Create indexes if needed
-	if err := createIndexes(ctx, db); err != nil {
-		log.Fatalf("[DB] Failed to create indexes: %v", err)
+	// Drop and recreate indexes
+	if err := dropAndRecreateIndexes(ctx, db); err != nil {
+		log.Fatalf("[DB] Failed to recreate indexes: %v", err)
 	}
 
 	return db
+}
+
+func dropAndRecreateIndexes(ctx context.Context, db *mongo.Database) error {
+	// Drop all indexes from users collection
+	log.Printf("[DB] Dropping all indexes from users collection...")
+	_, err := db.Collection("users").Indexes().DropAll(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to drop indexes: %w", err)
+	}
+
+	// Recreate indexes
+	log.Printf("[DB] Recreating indexes...")
+	if err := createIndexes(ctx, db); err != nil {
+		return fmt.Errorf("failed to recreate indexes: %w", err)
+	}
+
+	return nil
 }
 
 func createIndexes(ctx context.Context, db *mongo.Database) error {
@@ -44,7 +62,9 @@ func createIndexes(ctx context.Context, db *mongo.Database) error {
 		{
 			Collection: "users",
 			Fields: []IndexField{
-				{Name: "address", Order: 1, Unique: true},
+				{Name: "address", Order: 1, Unique: true, Sparse: true},
+				{Name: "email", Order: 1, Unique: true, Sparse: true},
+				{Name: "username", Order: 1, Unique: true, Sparse: true},
 			},
 		},
 		{
