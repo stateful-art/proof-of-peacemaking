@@ -6,6 +6,8 @@ import (
 	"proofofpeacemaking/internal/core/domain"
 	"proofofpeacemaking/internal/core/ports"
 
+	"time"
+
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -24,6 +26,14 @@ func NewWebAuthnService(passkeyRepo ports.PasskeyRepository, userRepo ports.User
 		RPDisplayName: "Proof of Peacemaking",
 		RPID:          "localhost", // Change this for production
 		RPOrigins:     []string{"http://localhost:3003"},
+		Timeouts: webauthn.TimeoutsConfig{
+			Login: webauthn.TimeoutConfig{
+				Timeout: time.Second * 60,
+			},
+			Registration: webauthn.TimeoutConfig{
+				Timeout: time.Second * 60,
+			},
+		},
 	}
 
 	w, err := webauthn.New(wconfig)
@@ -110,15 +120,20 @@ func (s *WebAuthnService) BeginRegistration(ctx context.Context, userID primitiv
 		credentials: credentials,
 	}
 
-	// Configure registration options to prefer cross-platform authenticators
+	// Configure registration options to support both platform and cross-platform authenticators
 	options, session, err := s.webauthn.BeginRegistration(
 		webAuthnUser,
 		webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
-			AuthenticatorAttachment: protocol.CrossPlatform,         // Prefer cross-platform authenticators (like password managers)
-			ResidentKey:             protocol.ResidentKeyPreferred,  // Prefer resident keys but don't require them
-			UserVerification:        protocol.VerificationPreferred, // Prefer user verification
+			ResidentKey:      protocol.ResidentKeyRequirementPreferred,
+			UserVerification: protocol.VerificationPreferred,
 		}),
-		webauthn.WithConveyancePreference(protocol.PreferNoAttestation), // Don't need attestation
+		webauthn.WithExtensions(map[string]interface{}{
+			"credProps": true,
+			"largeBlob": map[string]interface{}{
+				"support": "preferred",
+			},
+		}),
+		webauthn.WithConveyancePreference(protocol.PreferNoAttestation),
 	)
 	if err != nil {
 		return nil, webauthn.SessionData{}, fmt.Errorf("failed to begin registration: %w", err)

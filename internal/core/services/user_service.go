@@ -75,3 +75,7 @@ func (s *userService) GetUserByUsername(ctx context.Context, username string) (*
 func (s *userService) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
 	return s.userRepo.GetByID(ctx, id)
 }
+
+func (s *userService) Delete(ctx context.Context, id primitive.ObjectID) error {
+	return s.userRepo.Delete(ctx, id)
+}

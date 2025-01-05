@@ -70,7 +70,7 @@ func (h *WebAuthnHandler) BeginRegistration(c *fiber.Ctx) error {
 		})
 	}
 
-	// Create a new user
+	// Create a new user with pending status
 	user := &domain.User{
 		ID:        primitive.NewObjectID(),
 		Email:     req.Email,
@@ -95,36 +95,42 @@ func (h *WebAuthnHandler) BeginRegistration(c *fiber.Ctx) error {
 	// Begin registration
 	options, sessionData, err := h.webAuthnService.BeginRegistration(c.Context(), user.ID)
 	if err != nil {
-		// Log the error but continue - user will be cleaned up by a background job if registration isn't completed
-		log.Printf("Failed to begin WebAuthn registration for user %s: %v", user.ID.Hex(), err)
+		// If registration fails, we should clean up the user
+		if delErr := h.userService.Delete(c.Context(), user.ID); delErr != nil {
+			log.Printf("Failed to delete user after failed registration: %v", delErr)
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
-	// Create a temporary session for storing WebAuthn data
+	// Create a temporary registration session
 	session := &domain.Session{
-		UserID:       user.ID.Hex(),
-		WebAuthnData: string(must(json.Marshal(sessionData))),
-		CreatedAt:    time.Now(),
-		ExpiresAt:    time.Now().Add(5 * time.Minute), // Short expiry for registration
+		UserID:         user.ID.Hex(),
+		WebAuthnData:   string(must(json.Marshal(sessionData))),
+		CreatedAt:      time.Now(),
+		ExpiresAt:      time.Now().Add(5 * time.Minute), // Short expiry for registration
+		IsRegistration: true,                            // Mark this as a registration session
 	}
 
 	if err := h.sessionService.Create(c.Context(), session); err != nil {
-		// Log the error but continue - user will be cleaned up by a background job if registration isn't completed
-		log.Printf("Failed to create session for user %s: %v", user.ID.Hex(), err)
+		// If session creation fails, clean up the user
+		if delErr := h.userService.Delete(c.Context(), user.ID); delErr != nil {
+			log.Printf("Failed to delete user after failed session creation: %v", delErr)
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to create session",
 		})
 	}
 
-	// Set session cookie
+	// Set temporary registration session cookie
 	c.Cookie(&fiber.Cookie{
-		Name:     "session",
+		Name:     "registration_session",
 		Value:    session.Token,
 		HTTPOnly: true,
 		Secure:   true,
 		SameSite: "Strict",
+		MaxAge:   300, // 5 minutes
 	})
 
 	// Add user data to the response
@@ -144,11 +150,17 @@ func must(data []byte, err error) []byte {
 
 // FinishRegistration completes the passkey registration process
 func (h *WebAuthnHandler) FinishRegistration(c *fiber.Ctx) error {
-	// Get user from session
-	session, err := h.sessionService.GetSession(c.Context(), c.Cookies("session"))
+	// Get user from registration session
+	session, err := h.sessionService.GetSession(c.Context(), c.Cookies("registration_session"))
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "unauthorized",
+		})
+	}
+
+	if !session.IsRegistration {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid session type",
 		})
 	}
 
@@ -188,13 +200,33 @@ func (h *WebAuthnHandler) FinishRegistration(c *fiber.Ctx) error {
 		})
 	}
 
-	// Clear session data
-	session.WebAuthnData = ""
-	if err := h.sessionService.Update(c.Context(), session); err != nil {
+	// Delete the registration session
+	if err := h.sessionService.Delete(c.Context(), session.Token); err != nil {
+		log.Printf("Failed to delete registration session: %v", err)
+	}
+
+	// Create a new authenticated session
+	authSession := &domain.Session{
+		UserID:    userID.Hex(),
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(24 * time.Hour), // 24-hour session
+	}
+
+	if err := h.sessionService.Create(c.Context(), authSession); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to update session",
+			"error": "failed to create authenticated session",
 		})
 	}
+
+	// Set authenticated session cookie
+	c.Cookie(&fiber.Cookie{
+		Name:     "session",
+		Value:    authSession.Token,
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Strict",
+		MaxAge:   86400, // 24 hours
+	})
 
 	return c.JSON(fiber.Map{
 		"message": "passkey registered successfully",
@@ -230,6 +262,8 @@ func (h *WebAuthnHandler) BeginAuthentication(c *fiber.Ctx) error {
 	session := &domain.Session{
 		UserID:       userID.Hex(),
 		WebAuthnData: string(sessionDataJSON),
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(5 * time.Minute), // Short expiry for authentication
 	}
 
 	if err := h.sessionService.Create(c.Context(), session); err != nil {
@@ -240,11 +274,12 @@ func (h *WebAuthnHandler) BeginAuthentication(c *fiber.Ctx) error {
 
 	// Set session cookie
 	c.Cookie(&fiber.Cookie{
-		Name:     "session",
+		Name:     "auth_session",
 		Value:    session.Token,
 		HTTPOnly: true,
 		Secure:   true,
 		SameSite: "Strict",
+		MaxAge:   300, // 5 minutes
 	})
 
 	return c.JSON(options)
@@ -253,7 +288,7 @@ func (h *WebAuthnHandler) BeginAuthentication(c *fiber.Ctx) error {
 // FinishAuthentication completes the passkey authentication process
 func (h *WebAuthnHandler) FinishAuthentication(c *fiber.Ctx) error {
 	// Get session
-	session, err := h.sessionService.GetSession(c.Context(), c.Cookies("session"))
+	session, err := h.sessionService.GetSession(c.Context(), c.Cookies("auth_session"))
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "unauthorized",
@@ -296,13 +331,33 @@ func (h *WebAuthnHandler) FinishAuthentication(c *fiber.Ctx) error {
 		})
 	}
 
-	// Clear WebAuthn session data
-	session.WebAuthnData = ""
-	if err := h.sessionService.Update(c.Context(), session); err != nil {
+	// Delete the temporary auth session
+	if err := h.sessionService.Delete(c.Context(), session.Token); err != nil {
+		log.Printf("Failed to delete auth session: %v", err)
+	}
+
+	// Create a new authenticated session
+	authSession := &domain.Session{
+		UserID:    userID.Hex(),
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(24 * time.Hour), // 24-hour session
+	}
+
+	if err := h.sessionService.Create(c.Context(), authSession); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to update session",
+			"error": "failed to create authenticated session",
 		})
 	}
+
+	// Set authenticated session cookie
+	c.Cookie(&fiber.Cookie{
+		Name:     "session",
+		Value:    authSession.Token,
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Strict",
+		MaxAge:   86400, // 24 hours
+	})
 
 	return c.JSON(fiber.Map{
 		"message": "authenticated successfully",

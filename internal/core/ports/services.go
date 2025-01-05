@@ -71,6 +71,7 @@ type UserService interface {
 	GetUserByUsername(ctx context.Context, username string) (*domain.User, error)
 	UpdateNonce(ctx context.Context, id primitive.ObjectID, nonce int) error
 	ConnectWallet(ctx context.Context, userID primitive.ObjectID, address string) error
+	Delete(ctx context.Context, id primitive.ObjectID) error
 }
 
 type NewsletterService interface {
