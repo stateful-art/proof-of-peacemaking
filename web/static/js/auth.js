@@ -27,6 +27,9 @@ async function openAuthModal() {
     console.log('Auth modal element:', modal); // Debug log
     
     if (modal) {
+        // Clear all form fields
+        clearAuthForms();
+        
         // Reset modal state
         walletSteps.style.display = 'none';
         authForms.style.display = 'block';
@@ -930,4 +933,32 @@ function handleSuccessfulAuth(token) {
     setTimeout(() => {
         window.location.reload();
     }, 1500);
+}
+
+// Helper function to clear form fields
+function clearAuthForms() {
+    // Clear login form
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        const inputs = loginForm.getElementsByTagName('input');
+        for (let input of inputs) {
+            input.value = '';
+        }
+    }
+
+    // Clear register form
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        const inputs = registerForm.getElementsByTagName('input');
+        for (let input of inputs) {
+            input.value = '';
+        }
+    }
+
+    // Clear any error messages
+    const errorDivs = document.querySelectorAll('.error-message');
+    errorDivs.forEach(div => {
+        div.style.display = 'none';
+        div.textContent = '';
+    });
 } 
