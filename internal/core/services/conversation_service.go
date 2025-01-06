@@ -219,6 +219,8 @@ func (s *conversationService) UnsubscribeFromNotifications(ctx context.Context, 
 func (s *conversationService) GenerateJoinToken(userID string, roomName string, canPublish bool) (string, error) {
 	// Generate LiveKit token
 	at := auth.NewAccessToken(s.apiKey, s.apiSecret)
+	at.SetIdentity(userID)
+
 	grant := &auth.VideoGrant{
 		RoomJoin: true,
 		Room:     roomName,
