@@ -1,47 +1,87 @@
+// Wait for LiveKit to load
+function waitForLiveKit() {
+    return new Promise((resolve, reject) => {
+        if (window.livekit) {
+            resolve(window.livekit);
+            return;
+        }
+
+        let attempts = 0;
+        const maxAttempts = 10;
+        const interval = setInterval(() => {
+            attempts++;
+            if (window.livekit) {
+                clearInterval(interval);
+                resolve(window.livekit);
+            } else if (attempts >= maxAttempts) {
+                clearInterval(interval);
+                reject(new Error('LiveKit client failed to load'));
+            }
+        }, 500);
+    });
+}
+
 class ConversationRoom {
     constructor(config) {
+        if (!config) {
+            throw new Error('Configuration is required');
+        }
         this.config = config;
         this.room = null;
         this.participants = new Map();
         this.localParticipant = null;
+        this.initialized = false;
         this.setupUI();
-        this.connect();
+        this.initialize();
     }
 
-    async connect() {
+    async initialize() {
         try {
-            // Ensure LiveKitClient is loaded
-            if (!window.LiveKitClient) {
-                throw new Error('LiveKit client not loaded');
-            }
+            // Wait for LiveKit to load
+            const livekit = await waitForLiveKit();
+            // Connect to room
+            await this.connect(livekit);
+        } catch (error) {
+            console.error('Failed to initialize:', error);
+            showError('Failed to initialize the room. Please try again.');
+        }
+    }
 
+    async connect(livekit) {
+        try {
             // Format LiveKit host URL
-            const livekitUrl = this.config.livekitHost.startsWith('http') 
-                ? this.config.livekitHost 
-                : `wss://${this.config.livekitHost}`;
-
-            console.log('Connecting to LiveKit host:', livekitUrl);
+            const livekitUrl = this.config.livekitHost.replace(/^https?:\/\//, '').replace(/^wss?:\/\//, '');
+            const wsUrl = `wss://${livekitUrl}`;
             
-            // Create room instance
-            this.room = new LiveKitClient.Room({
+            console.log('Connecting to LiveKit host:', wsUrl);
+            console.log('Room name:', this.config.roomName);
+            console.log('Identity:', this.config.userId);
+            
+            // Create room instance with identity
+            this.room = new livekit.Room({
                 adaptiveStream: true,
                 dynacast: true,
+                name: this.config.roomName,
+                identity: this.config.userId,
                 publishDefaults: {
                     simulcast: true,
-                    videoSimulcastLayers: [LiveKitClient.VideoPresets.h90, LiveKitClient.VideoPresets.h216],
-                },
+                    videoSimulcastLayers: [livekit.VideoPresets.h90, livekit.VideoPresets.h216],
+                }
             });
 
-            // Connect to room
-            await this.room.connect(livekitUrl, this.config.token);
+            // Connect to room with identity in connect options
+            await this.room.connect(wsUrl, this.config.token, {
+                autoSubscribe: true
+            });
+            
             console.log('Connected to room:', this.config.roomName);
             
             this.localParticipant = this.room.localParticipant;
             this.setupLocalParticipant();
-            this.setupRoomHandlers();
+            this.setupRoomHandlers(livekit);
             
             // Request permissions and create tracks
-            await this.enableLocalTracks();
+            await this.enableLocalTracks(livekit);
             
         } catch (error) {
             console.error('Failed to connect to room:', error);
@@ -49,9 +89,9 @@ class ConversationRoom {
         }
     }
 
-    async enableLocalTracks() {
+    async enableLocalTracks(livekit) {
         try {
-            const tracks = await LiveKitClient.createLocalTracks({
+            const tracks = await livekit.createLocalTracks({
                 audio: true,
                 video: true
             });
@@ -76,19 +116,44 @@ class ConversationRoom {
         this.participantCount = document.getElementById('participantCount');
         this.participantsGrid = document.getElementById('participantsGrid');
         
+        if (!this.audioBtn || !this.videoBtn || !this.screenShareBtn || !this.participantCount || !this.participantsGrid) {
+            throw new Error('Required UI elements not found');
+        }
+
         // Add event listeners
-        this.audioBtn.addEventListener('click', () => this.toggleAudio());
-        this.videoBtn.addEventListener('click', () => this.toggleVideo());
-        this.screenShareBtn.addEventListener('click', () => this.toggleScreenShare());
+        this.audioBtn.addEventListener('click', async () => {
+            if (this.localParticipant) {
+                await this.toggleAudio();
+            }
+        });
+        
+        this.videoBtn.addEventListener('click', async () => {
+            if (this.localParticipant) {
+                await this.toggleVideo();
+            }
+        });
+        
+        this.screenShareBtn.addEventListener('click', async () => {
+            if (this.localParticipant) {
+                await this.toggleScreenShare();
+            }
+        });
         
         if (this.config.isCreator) {
             const endBtn = document.getElementById('endRoom');
-            endBtn.addEventListener('click', () => this.endRoom());
-            
             const shareBtn = document.getElementById('shareButton');
+            
+            if (!endBtn || !shareBtn) {
+                throw new Error('Creator UI elements not found');
+            }
+            
+            endBtn.addEventListener('click', () => this.endRoom());
             shareBtn.addEventListener('click', () => this.shareRoom());
         } else {
             const leaveBtn = document.getElementById('leaveRoom');
+            if (!leaveBtn) {
+                throw new Error('Leave button not found');
+            }
             leaveBtn.addEventListener('click', () => this.leaveRoom());
         }
     }
@@ -100,8 +165,8 @@ class ConversationRoom {
         this.updateParticipantCount();
     }
 
-    setupRoomHandlers() {
-        this.room.on(LivekitClient.RoomEvent.ParticipantConnected, (participant) => {
+    setupRoomHandlers(livekit) {
+        this.room.on(livekit.RoomEvent.ParticipantConnected, (participant) => {
             console.log('Participant connected:', participant.identity);
             const tile = this.createParticipantTile(participant);
             this.participantsGrid.appendChild(tile);
@@ -110,7 +175,7 @@ class ConversationRoom {
             this.updateGridLayout();
         });
 
-        this.room.on(LivekitClient.RoomEvent.ParticipantDisconnected, (participant) => {
+        this.room.on(livekit.RoomEvent.ParticipantDisconnected, (participant) => {
             console.log('Participant disconnected:', participant.identity);
             const tile = this.participants.get(participant.identity);
             if (tile) {
@@ -121,7 +186,7 @@ class ConversationRoom {
             this.updateGridLayout();
         });
 
-        this.room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+        this.room.on(livekit.RoomEvent.TrackSubscribed, (track, publication, participant) => {
             const tile = this.participants.get(participant.identity);
             if (tile) {
                 if (track.kind === 'video') {
@@ -131,7 +196,7 @@ class ConversationRoom {
             }
         });
 
-        this.room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+        this.room.on(livekit.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
             track.detach();
         });
     }
@@ -272,7 +337,18 @@ function showError(message) {
     }, 3000);
 }
 
-// Initialize room when the page loads
+// Initialize when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new ConversationRoom(window.ROOM_CONFIG);
+    if (!window.LIVEKIT_CONFIG) {
+        console.error('LiveKit configuration not found');
+        showError('Failed to initialize the room. Please try again.');
+        return;
+    }
+
+    try {
+        new ConversationRoom(window.LIVEKIT_CONFIG);
+    } catch (error) {
+        console.error('Failed to initialize room:', error);
+        showError('Failed to initialize the room. Please try again.');
+    }
 }); 
