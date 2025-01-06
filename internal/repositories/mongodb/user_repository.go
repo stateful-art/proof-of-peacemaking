@@ -363,12 +363,12 @@ func (r *UserRepository) cleanupDuplicates(ctx context.Context) error {
 				// Keep the older record (smaller ObjectID), clear email from newer one
 				if user.ID.Hex() > existingID.Hex() {
 					log.Printf("[INFO] Clearing duplicate email %s from user %s", user.Email, user.ID.Hex())
-					if err := r.clearEmail(ctx, user.ID); err != nil {
+					if err := r.ClearEmail(ctx, user.ID); err != nil {
 						log.Printf("[ERROR] Failed to clear email: %v", err)
 					}
 				} else {
 					log.Printf("[INFO] Clearing duplicate email %s from user %s", user.Email, existingID.Hex())
-					if err := r.clearEmail(ctx, existingID); err != nil {
+					if err := r.ClearEmail(ctx, existingID); err != nil {
 						log.Printf("[ERROR] Failed to clear email: %v", err)
 					}
 					seenEmails[emailLower] = user.ID
@@ -385,12 +385,12 @@ func (r *UserRepository) cleanupDuplicates(ctx context.Context) error {
 				// Keep the older record (smaller ObjectID), clear username from newer one
 				if user.ID.Hex() > existingID.Hex() {
 					log.Printf("[INFO] Clearing duplicate username %s from user %s", user.Username, user.ID.Hex())
-					if err := r.clearUsername(ctx, user.ID); err != nil {
+					if err := r.ClearUsername(ctx, user.ID); err != nil {
 						log.Printf("[ERROR] Failed to clear username: %v", err)
 					}
 				} else {
 					log.Printf("[INFO] Clearing duplicate username %s from user %s", user.Username, existingID.Hex())
-					if err := r.clearUsername(ctx, existingID); err != nil {
+					if err := r.ClearUsername(ctx, existingID); err != nil {
 						log.Printf("[ERROR] Failed to clear username: %v", err)
 					}
 					seenUsernames[usernameLower] = user.ID
@@ -408,7 +408,7 @@ func (r *UserRepository) cleanupDuplicates(ctx context.Context) error {
 	return nil
 }
 
-func (r *UserRepository) clearEmail(ctx context.Context, userID primitive.ObjectID) error {
+func (r *UserRepository) ClearEmail(ctx context.Context, userID primitive.ObjectID) error {
 	_, err := r.db.Collection("users").UpdateOne(
 		ctx,
 		bson.M{"_id": userID},
@@ -417,7 +417,7 @@ func (r *UserRepository) clearEmail(ctx context.Context, userID primitive.Object
 	return err
 }
 
-func (r *UserRepository) clearUsername(ctx context.Context, userID primitive.ObjectID) error {
+func (r *UserRepository) ClearUsername(ctx context.Context, userID primitive.ObjectID) error {
 	_, err := r.db.Collection("users").UpdateOne(
 		ctx,
 		bson.M{"_id": userID},

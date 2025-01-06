@@ -1,7 +1,9 @@
 package routes
 
 import (
+	"context"
 	"log"
+	"os"
 	"proofofpeacemaking/internal/core/domain"
 	"proofofpeacemaking/internal/core/services"
 	"proofofpeacemaking/internal/handlers"
@@ -11,7 +13,37 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/websocket/v2"
 )
+
+// WebSocket handler function
+func wsHandler(h *handlers.Handlers) func(*websocket.Conn) {
+	return func(c *websocket.Conn) {
+		defer c.Close()
+
+		// Get user address from locals
+		userAddress, ok := c.Locals("userAddress").(string)
+		if !ok {
+			log.Printf("Error: user address not found in context")
+			return
+		}
+
+		// Subscribe to notifications
+		notificationChan, err := h.Notification.GetNotificationService().SubscribeToNotifications(context.Background(), userAddress)
+		if err != nil {
+			log.Printf("Error subscribing to notifications: %v", err)
+			return
+		}
+
+		// Send notifications over WebSocket
+		for notification := range notificationChan {
+			if err := c.WriteJSON(notification); err != nil {
+				log.Printf("Error writing to websocket: %v", err)
+				break
+			}
+		}
+	}
+}
 
 func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	// Add CORS middleware
@@ -117,7 +149,7 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	// Home page (public)
 	app.Get("/", authMiddleware.Optional(), func(c *fiber.Ctx) error {
 		data := fiber.Map{
-			"Title": "Proof of Peacemaking",
+			"Title": "Expressions of Peace",
 		}
 
 		// Add user data if available
@@ -233,13 +265,19 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	app.Get("/dashboard/expressions", authMiddleware.Authenticate(), h.Dashboard.GetExpressions)
 	app.Get("/dashboard/acknowledgements", authMiddleware.Authenticate(), h.Dashboard.GetAcknowledgements)
 
+	// WebSocket notification endpoint
+	app.Use("/ws", authMiddleware.Authenticate())
+	app.Get("/ws/notifications", websocket.New(h.Notification.HandleWebSocket))
+
 	// Protected API routes
-	api := app.Group("/api", authMiddleware.Authenticate())
+	api := app.Group("/api")
+	api.Use(authMiddleware.Authenticate())
 
 	// Notification routes
 	notifications := api.Group("/notifications")
 	notifications.Get("/", h.Notification.GetUserNotifications)
 	notifications.Put("/:id/read", h.Notification.MarkAsRead)
+	notifications.Put("/read-all", h.Notification.MarkAllAsRead)
 
 	// Expression routes
 	expressions := api.Group("/expressions")
@@ -263,4 +301,60 @@ func SetupRoutes(app *fiber.App, h *handlers.Handlers) {
 	users.Put("/profile", accountHandler.UpdateProfile)
 	users.Post("/connect-wallet", accountHandler.ConnectWallet)
 	users.Post("/wallet-nonce", accountHandler.GetWalletNonce)
+
+	// Conversation routes
+	app.Get("/conversations", authMiddleware.Authenticate(), func(c *fiber.Ctx) error {
+		userIdentifier := c.Locals("userAddress").(string)
+		var user *domain.User
+		var err error
+
+		if strings.Contains(userIdentifier, "@") {
+			user, err = h.User.GetUserService().GetUserByEmail(c.Context(), userIdentifier)
+		} else {
+			user, err = h.User.GetUserService().GetUserByAddress(c.Context(), userIdentifier)
+		}
+
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to get user data",
+			})
+		}
+
+		if user == nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "User not found",
+			})
+		}
+
+		data := fiber.Map{
+			"Title": "Conversations",
+			"User": fiber.Map{
+				"ID":      user.ID.Hex(),
+				"Email":   user.Email,
+				"Address": user.Address,
+			},
+			"LiveKitHost": os.Getenv("LIVEKIT_HOST"),
+		}
+
+		return c.Render("conversations", data, "")
+	})
+
+	// Conversation room route
+	app.Get("/conversations/:id", authMiddleware.Authenticate(), h.Conversation.ServeRoom)
+
+	// Conversation API routes
+	conversations := api.Group("/conversations")
+	conversations.Post("/", h.Conversation.CreateConversation)
+	conversations.Get("/", h.Conversation.ListConversations)
+	conversations.Get("/:id", h.Conversation.GetConversation)
+	conversations.Post("/:id/start", h.Conversation.StartConversation)
+	conversations.Post("/:id/end", h.Conversation.EndConversation)
+	conversations.Post("/:id/subscribe", h.Conversation.SubscribeToNotifications)
+	conversations.Post("/:id/unsubscribe", h.Conversation.UnsubscribeFromNotifications)
+	conversations.Post("/:id/join", h.Conversation.GenerateJoinToken)
+
+	// Add notification routes
+	app.Get("/api/notifications", authMiddleware.Authenticate(), h.Notification.GetUserNotifications)
+	app.Post("/api/notifications/:id/read", authMiddleware.Authenticate(), h.Notification.MarkAsRead)
+	app.Post("/api/notifications/read-all", authMiddleware.Authenticate(), h.Notification.MarkAllAsRead)
 }

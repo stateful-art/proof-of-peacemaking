@@ -20,13 +20,9 @@ type UserRepository interface {
 	Delete(ctx context.Context, id primitive.ObjectID) error
 	GetTotalCount(ctx context.Context) (int, error)
 	GetCitizenshipDistribution(ctx context.Context) (map[string]int, error)
-}
-
-type NotificationRepository interface {
-	Create(ctx context.Context, notification *domain.Notification) error
-	CreateUserNotification(ctx context.Context, userNotification *domain.UserNotification) error
-	GetUserUnreadNotifications(ctx context.Context, userID primitive.ObjectID) ([]*domain.Notification, error)
-	MarkAsRead(ctx context.Context, userID, notificationID primitive.ObjectID) error
+	EnsureIndexes(ctx context.Context) error
+	ClearEmail(ctx context.Context, userID primitive.ObjectID) error
+	ClearUsername(ctx context.Context, userID primitive.ObjectID) error
 }
 
 type SessionRepository interface {

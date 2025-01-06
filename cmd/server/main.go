@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"proofofpeacemaking/api/routes"
-	"proofofpeacemaking/internal/core/config"
+	"proofofpeacemaking/internal/config"
 	"proofofpeacemaking/internal/core/domain"
 	"proofofpeacemaking/internal/core/ports"
 	"proofofpeacemaking/internal/core/services"
@@ -21,6 +21,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html/v2"
 	"github.com/joho/godotenv"
+	lksdk "github.com/livekit/server-sdk-go/v2"
 	"github.com/mailgun/mailgun-go/v4"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -37,6 +38,8 @@ func initializeServices(db *mongo.Database, r2Storage storage.Storage, mailgunCl
 	ports.SessionService,
 	ports.StatisticsService,
 	ports.SongService,
+	ports.ConversationService,
+	ports.NotificationService,
 	error,
 ) {
 	// Initialize repositories
@@ -48,6 +51,14 @@ func initializeServices(db *mongo.Database, r2Storage storage.Storage, mailgunCl
 	statsRepo := mongodb.NewStatisticsRepository(db)
 	passkeyRepo := mongodb.NewPasskeyRepository(db)
 	songRepo := mongodb.NewSongRepository(db)
+	conversationRepo := mongodb.NewConversationRepository(db)
+	notificationRepo := mongodb.NewNotificationRepository(db)
+
+	// Initialize LiveKit client
+	livekitHost := os.Getenv("LIVEKIT_HOST")
+	livekitAPIKey := os.Getenv("LIVEKIT_API_KEY")
+	livekitAPISecret := os.Getenv("LIVEKIT_API_SECRET")
+	livekitClient := lksdk.NewRoomServiceClient(livekitHost, livekitAPIKey, livekitAPISecret)
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
@@ -59,18 +70,20 @@ func initializeServices(db *mongo.Database, r2Storage storage.Storage, mailgunCl
 	newsletterService := services.NewNewsletterService(mailgunClient)
 	webAuthnService, err := services.NewWebAuthnService(passkeyRepo, userRepo)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, err
 	}
 	sessionService := services.NewSessionService(sessionRepo)
 	statsService := services.NewStatisticsService(statsRepo, userRepo, expressionRepo)
 	songService := services.NewSongService(songRepo)
+	notificationService := services.NewNotificationService(notificationRepo)
+	conversationService := services.NewConversationService(conversationRepo, livekitClient, notificationService)
 
 	// Ensure indexes
 	if err := songRepo.EnsureIndexes(); err != nil {
 		log.Printf("Failed to ensure song indexes: %v", err)
 	}
 
-	return userService, authService, expressionService, acknowledgementService, proofNFTService, feedService, newsletterService, webAuthnService, sessionService, statsService, songService, nil
+	return userService, authService, expressionService, acknowledgementService, proofNFTService, feedService, newsletterService, webAuthnService, sessionService, statsService, songService, conversationService, notificationService, nil
 }
 
 func getProjectRoot() string {
@@ -90,7 +103,7 @@ func setupHandlers(app *fiber.App) *handlers.Handlers {
 	}
 
 	// Initialize services
-	userService, authService, expressionService, acknowledgementService, proofNFTService, feedService, newsletterService, webAuthnService, sessionService, statsService, songService, err := initializeServices(db, expressionsR2Storage, mailgunClient)
+	userService, authService, expressionService, acknowledgementService, proofNFTService, feedService, newsletterService, webAuthnService, sessionService, statsService, songService, conversationService, notificationService, err := initializeServices(db, expressionsR2Storage, mailgunClient)
 	if err != nil {
 		log.Fatalf("Failed to initialize services: %v", err)
 	}
@@ -108,6 +121,8 @@ func setupHandlers(app *fiber.App) *handlers.Handlers {
 		sessionService,
 		newsletterService,
 		songService,
+		conversationService,
+		notificationService,
 	)
 
 	// Setup routes with user service for feed handler
@@ -118,6 +133,7 @@ func setupHandlers(app *fiber.App) *handlers.Handlers {
 
 func initTemplateEngine() *html.Engine {
 	engine := html.New("./web/templates", ".html")
+	engine.Reload(true)
 
 	// Add template functions
 	engine.AddFunc("trimAddress", func(address string) string {
@@ -126,6 +142,15 @@ func initTemplateEngine() *html.Engine {
 		}
 		return address[:6] + "..." + address[len(address)-4:]
 	})
+
+	engine.AddFunc("formatDate", func(date time.Time) string {
+		return date.Format("Jan 02, 2006")
+	})
+
+	// Load all templates
+	if err := engine.Load(); err != nil {
+		log.Printf("Warning: Failed to load templates: %v", err)
+	}
 
 	return engine
 }

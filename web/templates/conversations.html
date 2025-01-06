@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversations - {{.Title}}</title>
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <link rel="stylesheet" href="/static/css/conversations.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://unpkg.com/livekit-client@1.13.4/dist/livekit-client.umd.js"></script>
+    <script>
+        window.livekitHost = '{{.LiveKitHost}}';
+    </script>
+    <script src="/static/js/conversations.js"></script>
+</head>
+<body>
+    {{template "navbar" .}}
+    
+    <div class="container">
+        <div class="header">
+            <h1>Conversations</h1>
+            <div id="topCreateButton" style="display: none;">
+                <button class="create-btn" onclick="openCreateForm()">
+                    <i class="fas fa-plus"></i>
+                    Start a Conversation
+                </button>
+            </div>
+        </div>
+
+        <div class="filters">
+            <span class="filter-tag active">All</span>
+            <span class="filter-tag">Live Now</span>
+            <span class="filter-tag">Upcoming</span>
+            <span class="filter-tag">Past</span>
+        </div>
+
+        <div class="conversations-list" id="conversationsList">
+            <!-- Empty state -->
+            <div class="empty-state">
+                <h2>No conversations yet</h2>
+                <p>Be the first to start a conversation and connect with others!</p>
+                <button class="create-btn" onclick="openCreateForm()">
+                    <i class="fas fa-plus"></i>
+                    Start a Conversation
+                </button>
+            </div>
+        </div>
+
+        <!-- Video container for active conversation -->
+        <div id="videoContainer" class="video-container" style="display: none;">
+            <div id="participants"></div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="createFormModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCreateForm()">&times;</span>
+            <h2>Start a New Conversation</h2>
+            <form id="createConversationForm" onsubmit="createConversation(event)">
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="imageUrl">Image URL (optional)</label>
+                    <input type="url" id="imageUrl" name="imageUrl">
+                </div>
+                <div class="form-group">
+                    <label for="startTime">Start Time</label>
+                    <input type="datetime-local" id="startTime" name="startTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="tags">Tags (comma-separated)</label>
+                    <input type="text" id="tags" name="tags">
+                </div>
+                <button type="submit" class="create-btn">Create Conversation</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openCreateForm() {
+            document.getElementById('createFormModal').style.display = 'block';
+        }
+
+        function closeCreateForm() {
+            document.getElementById('createFormModal').style.display = 'none';
+            document.getElementById('createConversationForm').reset();
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('createFormModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeCreateForm();
+            }
+        });
+
+        window.userID = "{{.User.ID}}";
+        window.userAddress = "{{.User.Address}}";
+    </script>
+</body>
+</html> 

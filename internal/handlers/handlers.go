@@ -17,6 +17,7 @@ type Handlers struct {
 	Account         *AccountHandler
 	YouTube         *YouTubeHandler
 	Song            *SongHandler
+	Conversation    *ConversationHandler
 }
 
 func NewHandlers(
@@ -31,6 +32,8 @@ func NewHandlers(
 	sessionService ports.SessionService,
 	newsletterService ports.NewsletterService,
 	songService ports.SongService,
+	conversationService ports.ConversationService,
+	notificationService ports.NotificationService,
 ) *Handlers {
 	return &Handlers{
 		Auth:            NewAuthHandler(authService, userService),
@@ -46,5 +49,7 @@ func NewHandlers(
 		Dashboard:       NewDashboardHandler(expressionService, acknowledgementService, userService, proofNFTService),
 		YouTube:         NewYouTubeHandler(),
 		Song:            NewSongHandler(songService),
+		Conversation:    NewConversationHandler(conversationService, userService),
+		Notification:    NewNotificationHandler(notificationService),
 	}
 }

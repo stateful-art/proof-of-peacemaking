@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Conversation Room</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/navbar.css">
+    <link rel="stylesheet" href="/static/css/conversation-room.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://unpkg.com/livekit-client/dist/livekit-client.umd.js"></script>
+</head>
+<body class="dark-mode">
+    {{ template "navbar" . }}
+
+    <main class="main-content">
+        <div class="room-container">
+            <div class="room-header">
+                <div class="room-info">
+                    <h1>{{.Conversation.Title}}</h1>
+                    <div class="room-meta">
+                        <span class="participant-count">
+                            <i class="fas fa-users"></i>
+                            <span id="participantCount">1</span> participants
+                        </span>
+                        {{if .IsCreator}}
+                        <button id="shareButton" class="share-btn">
+                            <i class="fas fa-share"></i>
+                            Share Room
+                        </button>
+                        {{end}}
+                    </div>
+                </div>
+                <div class="room-controls">
+                    <button id="toggleAudio" class="control-btn">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="toggleVideo" class="control-btn">
+                        <i class="fas fa-video"></i>
+                    </button>
+                    <button id="toggleScreenShare" class="control-btn">
+                        <i class="fas fa-desktop"></i>
+                    </button>
+                    {{if .IsCreator}}
+                    <button id="endRoom" class="control-btn end-btn">
+                        <i class="fas fa-stop"></i>
+                        End Room
+                    </button>
+                    {{else}}
+                    <button id="leaveRoom" class="control-btn leave-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Leave
+                    </button>
+                    {{end}}
+                </div>
+            </div>
+
+            <div class="participants-grid" id="participantsGrid">
+                <!-- Participants' video elements will be added here -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Pass room configuration to JavaScript
+        window.ROOM_CONFIG = {
+            token: {{.Token}},
+            roomName: {{.RoomName}},
+            isCreator: {{.IsCreator}},
+            userId: {{.User.Address}},
+            conversationId: {{.Conversation.ID}}
+        };
+    </script>
+    <script src="/static/js/conversation-room.js"></script>
+</body>
+</html> 
