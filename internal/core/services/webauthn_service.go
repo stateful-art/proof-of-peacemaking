@@ -25,11 +25,22 @@ type WebAuthnService struct {
 
 // NewWebAuthnService creates a new WebAuthn service
 func NewWebAuthnService(passkeyRepo ports.PasskeyRepository, userRepo ports.UserRepository) (*WebAuthnService, error) {
-	log.Printf("@ NewWebAuthnService with port %s", os.Getenv("PORT"))
+
+	// var rpID string
+	// var rpOrigins []string
+
+	// if os.Getenv("ENV") == "production" {
+	// 	rpID = os.Getenv("RELYING_PARTY")
+	// 	rpOrigins = []string{fmt.Sprintf("https://%s", os.Getenv("RELYING_PARTY"))}
+	// } else {
+	// 	rpID = "localhost"
+	// 	rpOrigins = []string{fmt.Sprintf("http://localhost:%s", os.Getenv("PORT"))}
+	// }
+
 	wconfig := &webauthn.Config{
-		RPDisplayName: "Proof of Peacemaking",
-		RPID:          "localhost", // Change this for production
-		RPOrigins:     []string{fmt.Sprintf("http://localhost:%s", os.Getenv("PORT"))},
+		RPDisplayName: "Expressions of Peace",
+		RPID:          os.Getenv("RELYING_PARTY"),
+		RPOrigins:     []string{fmt.Sprintf("https://%s", os.Getenv("RELYING_PARTY"))},
 		Timeouts: webauthn.TimeoutsConfig{
 			Login: webauthn.TimeoutConfig{
 				Timeout: time.Second * 60,
